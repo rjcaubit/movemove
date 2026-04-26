@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0d10" />
+    <title>Movemove — Detector de Movimento</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Welcome -->
+      <section id="screen-welcome" class="screen" aria-hidden="false"></section>
+
+      <!-- Loading -->
+      <section id="screen-loading" class="screen hidden" aria-hidden="true"></section>
+
+      <!-- Error -->
+      <section id="screen-error" class="screen hidden" aria-hidden="true"></section>
+
+      <!-- Video stage (used by Calibration + Active) -->
+      <div id="video-stage" class="hidden" aria-hidden="true">
+        <video id="video" playsinline muted></video>
+        <canvas id="overlay"></canvas>
+        <button id="recalibrate-btn" class="secondary hidden" aria-label="Recalibrar">Recalibrar</button>
+        <div id="event-overlay">
+          <div class="event-pip" data-event="lane_left">←</div>
+          <div class="event-pip" data-event="duck">↓</div>
+          <div class="event-pip" data-event="jump">↑</div>
+          <div class="event-pip" data-event="lane_right">→</div>
+          <div class="event-pip" data-event="jumping_jack">JJ</div>
+          <div class="event-pip" data-event="arms_up">↑↑</div>
+        </div>
+        <div id="no-body-overlay" class="no-body-overlay hidden">
+          <span></span>
+        </div>
+        <button id="debug-toggle" aria-label="Mostrar painel de debug">Debug</button>
+        <aside id="debug-panel" class="hidden" aria-label="Painel de debug"></aside>
+        <div id="banner-host"></div>
+      </div>
+
+      <!-- Calibration overlay (uses video stage underneath) -->
+      <section id="screen-calibration" class="screen hidden" aria-hidden="true"></section>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

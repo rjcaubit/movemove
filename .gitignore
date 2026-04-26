@@ -1,0 +1,15 @@
+node_modules
+dist
+.DS_Store
+.vscode
+.idea
+*.log
+.env
+.env.local
+load-tests/results/*/screenshots/
+public/wasm/
+public/models/pose_landmarker_lite.task
+.tmp-*.md
+playwright-report
+test-results
+tsconfig.tsbuildinfo
