@@ -1,0 +1,5 @@
+name = "movemove"
+compatibility_date = "2026-04-26"
+
+[site]
+bucket = "./dist"

@@ -1,6 +1,7 @@
 import { renderWelcome, hideWelcome } from './ui/welcomeScreen.ts';
 import { showLoading, hideLoading } from './ui/loadingScreen.ts';
 import { showError, hideError, type ErrorKind } from './ui/errorScreen.ts';
+import { setNoBodyVisible } from './ui/noBodyScreen.ts';
 import { PoseDetector } from './pose/poseDetector.ts';
 import { EmaSmoother } from './pose/smoother.ts';
 import { POSE_CONFIG } from './pose/config.ts';
@@ -9,6 +10,9 @@ import { CalibrationScreen } from './ui/calibrationScreen.ts';
 import { Calibrator, type CalibrationOutcome } from './pose/calibration.ts';
 import { EventDetector } from './pose/events.ts';
 import { EventOverlay } from './ui/eventOverlay.ts';
+import { DebugPanel } from './ui/debugPanel.ts';
+import { KeyboardDebug } from './debug/keyboard.ts';
+import { strings } from './i18n/strings.ts';
 import type { Baseline, GameEvent, PoseFrame } from './pose/types.ts';
 
 type AppState =
@@ -34,6 +38,8 @@ const videoStage = $('video-stage');
 const video = $('video') as unknown as HTMLVideoElement;
 const overlay = $('overlay') as unknown as HTMLCanvasElement;
 const recalibrateBtn = $('recalibrate-btn') as unknown as HTMLButtonElement;
+const noBodyHost = $('no-body-overlay');
+const bannerHost = $('banner-host');
 
 const detector = new PoseDetector();
 const smoother = new EmaSmoother(POSE_CONFIG.emaAlpha);
@@ -41,23 +47,64 @@ const keypointPainter = new KeypointOverlay(overlay);
 const calibrator = new Calibrator();
 const eventDetector = new EventDetector();
 const eventOverlay = new EventOverlay($('event-overlay'));
+const debugPanel = new DebugPanel($('debug-panel'), $('debug-toggle'));
+const keyboardDebug = new KeyboardDebug((ev) => {
+  eventDetector.dispatchEvent(new CustomEvent('event', { detail: ev }));
+});
+if (KeyboardDebug.isEnabledByQuery()) keyboardDebug.enable();
 
 let state: AppState = { kind: 'welcome' };
 let unsubFrame: (() => void) | null = null;
 let calibScreen: CalibrationScreen | null = null;
 let baseline: Baseline | null = null;
+let lastFrameAt = 0;
+let lowConfSince: number | null = null;
+let driftSuggestedAt: number | null = null;
+
+let bannerEl: HTMLDivElement | null = null;
+function showBanner(
+  text: string,
+  kind: 'warn' | 'error' = 'warn',
+  actionLabel?: string,
+  onAction?: () => void,
+): void {
+  hideBanner();
+  bannerEl = document.createElement('div');
+  bannerEl.className = `banner ${kind === 'error' ? 'error' : ''}`;
+  const span = document.createElement('span');
+  span.textContent = text;
+  bannerEl.appendChild(span);
+  if (actionLabel && onAction) {
+    const btn = document.createElement('button');
+    btn.textContent = actionLabel;
+    btn.style.minHeight = '32px';
+    btn.style.padding = '4px 10px';
+    btn.style.fontSize = '13px';
+    btn.addEventListener('click', () => { hideBanner(); onAction(); }, { once: true });
+    bannerEl.appendChild(btn);
+  }
+  bannerHost.appendChild(bannerEl);
+}
+function hideBanner(): void {
+  if (bannerEl && bannerEl.parentElement) bannerEl.parentElement.removeChild(bannerEl);
+  bannerEl = null;
+}
 
 eventDetector.addEventListener('event', (e) => {
   const ev = (e as CustomEvent<GameEvent>).detail;
   eventOverlay.fire(ev);
-  // Fase E1 vai plugar debugPanel.appendEvent aqui
-  if (ev.type !== 'cadence') console.log('[event]', ev);
+  debugPanel.appendEvent(ev);
+  if (ev.type === 'lane_change') debugPanel.setLane(ev.lane);
+  if (ev.type === 'cadence') debugPanel.setCadence(ev.stepsPerSec);
 });
 
 recalibrateBtn.addEventListener('click', () => {
   baseline = null;
   eventDetector.reset();
   smoother.reset();
+  lowConfSince = null;
+  driftSuggestedAt = null;
+  hideBanner();
   transitionTo({ kind: 'calibrating' });
 });
 
@@ -77,6 +124,8 @@ function transitionTo(next: AppState): void {
       smoother.reset();
       eventDetector.reset();
       baseline = null;
+      hideBanner();
+      setNoBodyVisible(noBodyHost, false);
       renderWelcome(screens.welcome, () => start());
       break;
     case 'loading':
@@ -127,8 +176,16 @@ function classifyError(err: unknown): ErrorKind {
 function handleFrame(frame: PoseFrame): void {
   const smoothed = smoother.smooth(frame.keypoints);
   const smoothedFrame: PoseFrame = { ...frame, keypoints: smoothed };
+
+  lastFrameAt = frame.timestamp;
+  setNoBodyVisible(noBodyHost, false);
+
   keypointPainter.resizeToVideo(video);
   keypointPainter.draw(smoothed, frame.confidence);
+
+  debugPanel.tickFps(frame.timestamp);
+  debugPanel.setConfidence(frame.confidence);
+  if (baseline) debugPanel.setBaseline(baseline);
 
   if (state.kind === 'calibrating' && calibrator.isActive()) {
     const outcome: CalibrationOutcome | null = calibrator.feed(smoothedFrame);
@@ -144,10 +201,43 @@ function handleFrame(frame: PoseFrame): void {
       }
     }
   }
+
   if (state.kind === 'active' && baseline) {
     eventDetector.ingest(smoothedFrame);
+
+    if (frame.confidence < POSE_CONFIG.lowConfidenceThreshold) {
+      if (lowConfSince === null) lowConfSince = frame.timestamp;
+      const dur = frame.timestamp - lowConfSince;
+      if (dur > POSE_CONFIG.lowConfidenceWarnDurationMs && !bannerEl) {
+        showBanner(strings.states.lowLight, 'warn');
+      }
+      if (dur > POSE_CONFIG.driftRecalibrateSuggestMs && driftSuggestedAt === null) {
+        driftSuggestedAt = frame.timestamp;
+        showBanner(strings.states.driftCalibration, 'warn', strings.states.recalibrate, () => {
+          baseline = null;
+          eventDetector.reset();
+          lowConfSince = null;
+          driftSuggestedAt = null;
+          transitionTo({ kind: 'calibrating' });
+        });
+      }
+    } else {
+      lowConfSince = null;
+      driftSuggestedAt = null;
+      hideBanner();
+    }
   }
 }
+
+setInterval(() => {
+  if (
+    state.kind === 'active' &&
+    lastFrameAt > 0 &&
+    performance.now() - lastFrameAt > POSE_CONFIG.noBodyTimeoutMs
+  ) {
+    setNoBodyVisible(noBodyHost, true);
+  }
+}, 500);
 
 transitionTo({ kind: 'welcome' });
 
