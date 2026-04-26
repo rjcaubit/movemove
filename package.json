@@ -10,6 +10,8 @@
     "preview": "vite preview --host",
     "lint": "tsc --noEmit",
     "copy:wasm": "mkdir -p public/wasm && cp -f node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.js public/wasm/",
+    "download:model": "mkdir -p public/models && curl -fsSL -o public/models/pose_landmarker_lite.task https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+    "setup": "npm run download:model && npm run copy:wasm",
     "e2e": "playwright test"
   },
   "devDependencies": {

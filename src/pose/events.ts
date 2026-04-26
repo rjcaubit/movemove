@@ -12,6 +12,7 @@ export class EventDetector extends EventTarget {
 
   // jump
   private lastJumpAt = 0;
+  private prevHipY: number | null = null;
   // duck
   private duckSince: number | null = null;
   // lane
@@ -29,6 +30,7 @@ export class EventDetector extends EventTarget {
   reset(): void {
     this.baseline = null;
     this.lastJumpAt = 0;
+    this.prevHipY = null;
     this.duckSince = null;
     this.currentLane = 0;
     this.kneeUpHistory = [];
@@ -65,10 +67,17 @@ export class EventDetector extends EventTarget {
     const yHip = this.hipY(kp);
     const threshold =
       this.baseline.yQuadrilBase - POSE_CONFIG.jumpThresholdFracHCorpo * this.baseline.hCorpo;
-    if (yHip < threshold && t - this.lastJumpAt > POSE_CONFIG.jumpCooldownMs) {
+    // Seção 3.3: cruza threshold E está em movimento ascendente (Δy negativo em coords de tela).
+    const ascending = this.prevHipY !== null && yHip < this.prevHipY;
+    if (
+      yHip < threshold &&
+      ascending &&
+      t - this.lastJumpAt > POSE_CONFIG.jumpCooldownMs
+    ) {
       this.lastJumpAt = t;
       this.emit({ type: 'jump', source: 'pose', t });
     }
+    this.prevHipY = yHip;
   }
 
   private detectDuck(kp: Keypoint[], t: number): void {
@@ -119,17 +128,23 @@ export class EventDetector extends EventTarget {
     const threshold =
       this.baseline.yQuadrilBase - POSE_CONFIG.cadenceKneeRaiseFracHCorpo * this.baseline.hCorpo;
     const last = this.kneeUpHistory[this.kneeUpHistory.length - 1];
+    let newStep = false;
     if (yKneeL < threshold && (!last || last.side !== 'L')) {
       this.kneeUpHistory.push({ side: 'L', t });
+      newStep = true;
     } else if (yKneeR < threshold && (!last || last.side !== 'R')) {
       this.kneeUpHistory.push({ side: 'R', t });
+      newStep = true;
     }
     const cutoff = t - POSE_CONFIG.cadenceWindowMs;
     while (this.kneeUpHistory.length > 0 && this.kneeUpHistory[0].t < cutoff) {
       this.kneeUpHistory.shift();
     }
-    const stepsPerSec = (this.kneeUpHistory.length * 1000) / POSE_CONFIG.cadenceWindowMs;
-    this.emit({ type: 'cadence', stepsPerSec, source: 'pose', t });
+    // Emite apenas quando há novo passo registrado, evitando spam por frame.
+    if (newStep) {
+      const stepsPerSec = (this.kneeUpHistory.length * 1000) / POSE_CONFIG.cadenceWindowMs;
+      this.emit({ type: 'cadence', stepsPerSec, source: 'pose', t });
+    }
   }
 
   private detectJumpingJack(kp: Keypoint[], t: number): void {
@@ -140,12 +155,14 @@ export class EventDetector extends EventTarget {
     const ankleSpread = Math.abs(xAnkleL - xAnkleR);
     const yWristL = kp[KP.LEFT_WRIST].y;
     const yWristR = kp[KP.RIGHT_WRIST].y;
-    const yEyeL = kp[KP.LEFT_EYE].y;
-    const yEyeR = kp[KP.RIGHT_EYE].y;
-    const yEyes = (yEyeL + yEyeR) / 2;
+    // Seção 3.3: punhos acima do TOPO DA CABEÇA. Aproximamos o topo
+    // como o nariz (KP.NOSE) deslocado pra cima por uma fração de H_corpo
+    // (a coroa fica acima do nariz; sem keypoint dedicado, usamos esse offset).
+    const yNose = kp[KP.NOSE].y;
+    const yTopoCabeca = yNose - POSE_CONFIG.jumpThresholdFracHCorpo * this.baseline.hCorpo;
     const ankleSpreadOk =
       ankleSpread > POSE_CONFIG.jackAnkleSpreadFactorOmbros * this.baseline.larguraOmbros;
-    const wristsAboveHead = yWristL < yEyes && yWristR < yEyes;
+    const wristsAboveHead = yWristL < yTopoCabeca && yWristR < yTopoCabeca;
     if (ankleSpreadOk && wristsAboveHead) {
       this.lastJackAt = t;
       this.emit({ type: 'jumping_jack', source: 'pose', t });

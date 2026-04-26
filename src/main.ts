@@ -1,5 +1,5 @@
 import { renderWelcome, hideWelcome } from './ui/welcomeScreen.ts';
-import { showLoading, hideLoading } from './ui/loadingScreen.ts';
+import { showLoading, hideLoading, setLoadingStatus } from './ui/loadingScreen.ts';
 import { showError, hideError, type ErrorKind } from './ui/errorScreen.ts';
 import { setNoBodyVisible } from './ui/noBodyScreen.ts';
 import { PoseDetector } from './pose/poseDetector.ts';
@@ -153,7 +153,8 @@ function transitionTo(next: AppState): void {
 async function start(): Promise<void> {
   transitionTo({ kind: 'loading' });
   try {
-    await detector.loadModel();
+    await detector.loadModel((msg) => setLoadingStatus(msg));
+    setLoadingStatus('Abrindo câmera…');
     await detector.openCamera(video);
     detector.start(video);
     unsubFrame = detector.onFrame(handleFrame);

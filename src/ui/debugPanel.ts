@@ -79,9 +79,13 @@ export class DebugPanel {
   private update(): void {
     this.rowFps.lastChild!.textContent = `${this.state.fps}`;
     this.rowConf.lastChild!.textContent = this.state.confidence.toFixed(2);
-    this.rowBase.lastChild!.textContent = this.state.baseline
-      ? `H=${this.state.baseline.hCorpo.toFixed(3)} hipY=${this.state.baseline.yQuadrilBase.toFixed(3)}`
-      : '—';
+    if (this.state.baseline) {
+      const b = this.state.baseline;
+      this.rowBase.lastChild!.textContent =
+        `H=${b.hCorpo.toFixed(3)} hipY=${b.yQuadrilBase.toFixed(3)} cX=${b.xCentroBase.toFixed(3)} W=${b.larguraOmbros.toFixed(3)}`;
+    } else {
+      this.rowBase.lastChild!.textContent = '—';
+    }
     this.rowLane.lastChild!.textContent = `${this.state.lane}`;
     this.rowCad.lastChild!.textContent = `${this.state.cadence.toFixed(2)} p/s`;
   }

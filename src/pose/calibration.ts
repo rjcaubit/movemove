@@ -25,9 +25,15 @@ export class Calibrator {
 
   feed(frame: PoseFrame): CalibrationOutcome | null {
     if (!this.active) return null;
-    if (frame.confidence >= POSE_CONFIG.minConfidenceForCalibration) {
-      this.samples.push(frame);
+    // Seção 3.1: requer 2s CONTÍNUOS de baixa pose com confiança ≥ 0.6.
+    // Se a confiança cair, reset o relógio e descarta amostras anteriores —
+    // assim a janela só fecha após 2s ininterruptos válidos.
+    if (frame.confidence < POSE_CONFIG.minConfidenceForCalibration) {
+      this.startedAt = performance.now();
+      this.samples = [];
+      return null;
     }
+    this.samples.push(frame);
     const elapsed = performance.now() - this.startedAt;
     if (elapsed < POSE_CONFIG.calibrationDurationMs) return null;
     return this.finalize();
