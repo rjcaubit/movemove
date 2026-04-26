@@ -23,13 +23,31 @@
         <video id="video" playsinline muted></video>
         <canvas id="overlay"></canvas>
         <button id="recalibrate-btn" class="secondary hidden" aria-label="Recalibrar">Recalibrar</button>
-        <div id="event-overlay">
-          <div class="event-pip" data-event="lane_left">←</div>
-          <div class="event-pip" data-event="duck">↓</div>
-          <div class="event-pip" data-event="jump">↑</div>
-          <div class="event-pip" data-event="lane_right">→</div>
-          <div class="event-pip" data-event="jumping_jack">JJ</div>
-          <div class="event-pip" data-event="arms_up">↑↑</div>
+        <div id="event-overlay" aria-live="polite" aria-atomic="false">
+          <div class="event-pip" data-event="lane_left">
+            <span class="pip-icon">←</span>
+            <span class="pip-label">ESQ</span>
+          </div>
+          <div class="event-pip" data-event="duck">
+            <span class="pip-icon">↓</span>
+            <span class="pip-label">AGACHA</span>
+          </div>
+          <div class="event-pip" data-event="jump">
+            <span class="pip-icon">↑</span>
+            <span class="pip-label">PULO</span>
+          </div>
+          <div class="event-pip" data-event="lane_right">
+            <span class="pip-icon">→</span>
+            <span class="pip-label">DIR</span>
+          </div>
+          <div class="event-pip" data-event="jumping_jack">
+            <span class="pip-icon">✦</span>
+            <span class="pip-label">JACK</span>
+          </div>
+          <div class="event-pip" data-event="arms_up">
+            <span class="pip-icon">⇧</span>
+            <span class="pip-label">MÃOS</span>
+          </div>
         </div>
         <div id="no-body-overlay" class="no-body-overlay hidden">
           <span></span>
