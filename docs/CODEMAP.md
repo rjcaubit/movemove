@@ -77,10 +77,17 @@ movemove/
 | Issue | Tipo | Título | Status |
 |-------|------|--------|--------|
 | #1 | study | Viabilidade técnica e roadmap das Fases 0-3 | Aberta (pai conceitual) |
-| #2 | feat | Fase 0 — PoC de detecção de pose | Em andamento |
-| #3 | feat | Fase 1 — endless runner mínimo | Aguardando #2 |
+| #2 | feat | Fase 0 — PoC de detecção de pose | Código mergeado (validação humana CT01 pendente) |
+| #3 | feat | Fase 1 — endless runner mínimo | Aguardando #2 ser validada |
 | #4 | feat | Fase 2 — camada de exercício saudável | Aguardando #3 |
 | #5 | feat | Fase 3 — conteúdo, progressão, 2P | Aguardando #4 |
+
+## Achados da Fase 0 (Issue #2)
+
+- **RNF04 (`<5MB` bundle) é irreal** com MediaPipe `lite`. Modelo real é 5.5MB (não 3MB previsto), WASM SIMD 11MB. Bundle final: 18MB uncompressed, ~9-10MB com gzip do Cloudflare. Atualizar budget na Fase 1 ou aceitar primeira visita >5MB.
+- WASM `module_internal` e `nosimd_internal` removidos do build (~21MB economizados); só SIMD principal copiado pra `public/wasm/`.
+- Source maps Vite desabilitados em produção (-400KB).
+- iOS PWA + getUserMedia: confirmado via deploy que sem `display: standalone` no manifest evita re-prompts de câmera (não usado nesta fase).
 
 ## Próxima fase
 
