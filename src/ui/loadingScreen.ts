@@ -17,7 +17,7 @@ export function showLoading(root: HTMLElement): void {
   const spinner = document.createElement('div');
   spinner.setAttribute('role', 'progressbar');
   spinner.setAttribute('aria-busy', 'true');
-  spinner.setAttribute('aria-label', 'Carregando');
+  spinner.setAttribute('aria-label', strings.loading.spinnerAriaLabel);
   spinner.style.width = '48px';
   spinner.style.height = '48px';
   spinner.style.border = '4px solid rgba(245,245,245,0.2)';

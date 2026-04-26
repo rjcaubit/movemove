@@ -36,8 +36,10 @@ export class DebugPanel {
     this.logEl = document.createElement('div');
     this.logEl.className = 'log';
     this.panel.appendChild(this.logEl);
+    this.toggle.setAttribute('aria-expanded', 'false');
     this.toggle.addEventListener('click', () => {
-      this.panel.classList.toggle('hidden');
+      const open = this.panel.classList.toggle('hidden') === false;
+      this.toggle.setAttribute('aria-expanded', String(open));
     });
   }
 

@@ -45,6 +45,8 @@ export const POSE_CONFIG = {
   videoIdealWidth: 854,
   videoIdealHeight: 480,
   numPoses: 1,
+  /** Confiança mínima usada nos 3 thresholds de detecção/presença/tracking do MediaPipe */
+  mediapipeMinConfidence: 0.5,
 
   /** Debug */
   debugLogMaxEntries: 20,

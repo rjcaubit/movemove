@@ -154,7 +154,7 @@ async function start(): Promise<void> {
   transitionTo({ kind: 'loading' });
   try {
     await detector.loadModel((msg) => setLoadingStatus(msg));
-    setLoadingStatus('Abrindo câmera…');
+    setLoadingStatus(strings.loading.statusOpeningCamera);
     await detector.openCamera(video);
     detector.start(video);
     unsubFrame = detector.onFrame(handleFrame);

@@ -4,6 +4,7 @@ import {
   type PoseLandmarkerResult,
 } from '@mediapipe/tasks-vision';
 import { POSE_CONFIG } from './config.ts';
+import { strings } from '../i18n/strings.ts';
 import type { Keypoint, PoseFrame } from './types.ts';
 
 const RELEVANT_KP_INDICES = [0, 2, 5, 11, 12, 15, 16, 23, 24, 25, 26, 27, 28];
@@ -15,9 +16,9 @@ export class PoseDetector {
   private frameCallbacks = new Set<(frame: PoseFrame) => void>();
 
   async loadModel(onProgress?: (msg: string) => void): Promise<void> {
-    onProgress?.('Inicializando WASM…');
+    onProgress?.(strings.loading.statusInitWasm);
     const vision = await FilesetResolver.forVisionTasks(POSE_CONFIG.wasmPath);
-    onProgress?.('Baixando modelo…');
+    onProgress?.(strings.loading.statusDownloadingModel);
     this.landmarker = await PoseLandmarker.createFromOptions(vision, {
       baseOptions: {
         modelAssetPath: POSE_CONFIG.modelAssetPath,
@@ -25,11 +26,11 @@ export class PoseDetector {
       },
       runningMode: 'VIDEO',
       numPoses: POSE_CONFIG.numPoses,
-      minPoseDetectionConfidence: 0.5,
-      minPosePresenceConfidence: 0.5,
-      minTrackingConfidence: 0.5,
+      minPoseDetectionConfidence: POSE_CONFIG.mediapipeMinConfidence,
+      minPosePresenceConfidence: POSE_CONFIG.mediapipeMinConfidence,
+      minTrackingConfidence: POSE_CONFIG.mediapipeMinConfidence,
     });
-    onProgress?.('Pronto');
+    onProgress?.(strings.loading.statusReady);
   }
 
   async openCamera(video: HTMLVideoElement): Promise<void> {
@@ -52,17 +53,25 @@ export class PoseDetector {
     await video.play();
   }
 
-  start(video: HTMLVideoElement): void {
+  start(video: HTMLVideoElement, onError?: (err: unknown) => void): void {
     if (!this.landmarker) throw new Error('PoseDetector: loadModel() first');
     let lastTs = -1;
     const tick = () => {
       const ts = performance.now();
       if (video.currentTime !== lastTs && video.readyState >= 2) {
         lastTs = video.currentTime;
-        const result = this.landmarker!.detectForVideo(video, ts);
-        const frame = this.toFrame(result, ts);
-        if (frame) {
-          for (const cb of this.frameCallbacks) cb(frame);
+        try {
+          const result = this.landmarker!.detectForVideo(video, ts);
+          const frame = this.toFrame(result, ts);
+          if (frame) {
+            for (const cb of this.frameCallbacks) cb(frame);
+          }
+        } catch (err) {
+          // Loop não pode morrer por uma falha pontual de inferência (ex: WASM
+          // momentaneamente indisponível, perda de contexto GPU). Logar e seguir;
+          // se onError for passado, o orquestrador pode mostrar feedback.
+          console.error('PoseDetector.tick:', err);
+          onError?.(err);
         }
       }
       this.rafId = requestAnimationFrame(tick);

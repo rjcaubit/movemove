@@ -13,6 +13,11 @@ export const strings = {
   loading: {
     text: 'Carregando detector de movimento…',
     subtext: 'Da primeira vez pode demorar alguns segundos.',
+    spinnerAriaLabel: 'Carregando',
+    statusInitWasm: 'Inicializando WASM…',
+    statusDownloadingModel: 'Baixando modelo…',
+    statusReady: 'Pronto',
+    statusOpeningCamera: 'Abrindo câmera…',
   },
   calibration: {
     instruction: 'Fique parado, de frente, braços ao lado do corpo.',
