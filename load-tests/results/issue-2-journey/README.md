@@ -6,6 +6,34 @@ Esta pasta contém logs e screenshots da validação empírica da Fase 0 — Se�
 
 Validação manual humana (criança real do dev). FPS lido pelo painel de debug toggle. Latência subjetiva. Falsos positivos contados manualmente.
 
+### Como rodar para testar
+
+**No MacBook (sem tunnel):**
+```bash
+npm run dev
+# abre https://localhost:5173/   (mkcert gera CA local trusted)
+# abre https://localhost:5173/?debug=1 (com keyboard fallback)
+```
+
+**No celular (mesma WiFi) — Android Chrome:**
+```bash
+npm run dev
+# abre https://192.168.68.59:5173/  (substituir por IP do MacBook)
+# Chrome avisa "Conexão não privada" → Avançado → Continuar
+```
+
+**No celular (qualquer device, incluindo iPhone Safari) — via tunnel HTTPS:**
+```bash
+# Terminal 1:
+npm run dev
+# Terminal 2:
+npx cloudflared tunnel --url https://localhost:5173 --no-tls-verify
+# cloudflared imprime uma URL https://random-words.trycloudflare.com
+# Abre essa URL no celular — câmera funciona sem warning
+```
+
+**Por que HTTPS é obrigatório:** browsers só expõem `navigator.mediaDevices` em secure contexts (HTTPS ou localhost). IP LAN sem HTTPS = câmera bloqueada (mostrado como erro `insecureContext` no app).
+
 ## Devices testados
 
 | Device | OS | Browser | FPS médio | Acerto subjetivo (jump/duck/lane) | Falsos positivos jump (1min parado) | Notas |

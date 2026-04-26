@@ -35,6 +35,8 @@ export const strings = {
       'Você precisa permitir a câmera. Clique no cadeado ↗︎ na barra do navegador e permita o acesso.',
     cameraNotFound:
       'Não encontramos câmera. Conecte uma webcam ou abra esta página no celular.',
+    insecureContext:
+      'A câmera só funciona em HTTPS ou abrindo por http://localhost. Se você abriu por um IP da rede (192.168.x.x), abra direto em http://localhost:5173 no computador, ou use um túnel HTTPS (cloudflared) pra acessar do celular.',
     modelDownload:
       'Não conseguimos baixar o detector. Verifique sua internet e tente de novo.',
     generic: 'Algo deu errado. Tente recarregar a página.',

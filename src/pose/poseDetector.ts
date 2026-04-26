@@ -34,6 +34,14 @@ export class PoseDetector {
   }
 
   async openCamera(video: HTMLVideoElement): Promise<void> {
+    // Em contextos não-seguros (IP LAN sem HTTPS), navigator.mediaDevices é
+    // undefined. Falhar com erro nomeado para o orquestrador classificar.
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new DOMException(
+        'navigator.mediaDevices unavailable — requires HTTPS or localhost',
+        'SecurityError',
+      );
+    }
     this.stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'user',

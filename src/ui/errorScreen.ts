@@ -1,6 +1,11 @@
 import { strings } from '../i18n/strings.ts';
 
-export type ErrorKind = 'cameraDenied' | 'cameraNotFound' | 'modelDownload' | 'generic';
+export type ErrorKind =
+  | 'cameraDenied'
+  | 'cameraNotFound'
+  | 'insecureContext'
+  | 'modelDownload'
+  | 'generic';
 
 export function showError(
   root: HTMLElement,

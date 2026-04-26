@@ -169,6 +169,7 @@ function classifyError(err: unknown): ErrorKind {
   if (err instanceof DOMException) {
     if (err.name === 'NotAllowedError') return 'cameraDenied';
     if (err.name === 'NotFoundError' || err.name === 'OverconstrainedError') return 'cameraNotFound';
+    if (err.name === 'SecurityError') return 'insecureContext';
   }
   if (err instanceof Error && /fetch|network|loading/i.test(err.message)) return 'modelDownload';
   return 'generic';

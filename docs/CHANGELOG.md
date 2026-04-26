@@ -17,6 +17,8 @@ Formato: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Todas as data
 ### Achados (não-bloqueantes)
 - Bundle 18MB total (modelo lite 5.5MB + WASM SIMD 11MB) — RNF04 (<5MB) é irreal com MediaPipe lite. Documentado.
 - CT01 (validação manual humana com criança real do dev) pendente — fora de escopo do agente. Critério de aceitação documentado em `load-tests/results/issue-2-journey/README.md`.
+- Dev local agora roda em HTTPS via `vite-plugin-mkcert` (CA auto-instalada no Mac trust store). Necessário para `navigator.mediaDevices` funcionar fora de `localhost` (ex: testar do celular via IP LAN).
+- Tratamento do erro de secure context: novo `ErrorKind: 'insecureContext'` mostra mensagem em PT-BR explicando como abrir corretamente.
 
 ### Spec
 - Design: `docs/sdd/ISSUE_2/00-design.md`
