@@ -44,7 +44,7 @@ export class Welcome extends Phaser.Scene {
       padding: { x: 20, y: 8 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     minigamesBtn.setName('btn-minigames');
-    minigamesBtn.on('pointerup', () => this.scene.start('MiniGamesHub'));
+    minigamesBtn.on('pointerup', () => this.scene.start('Loading', { next: 'MiniGamesHub' }));
 
     const settingsBtn = this.add.text(width - 24, 24, strings.welcome.settings, {
       fontFamily: 'system-ui', fontSize: '14px', color: '#f5f5f5',
