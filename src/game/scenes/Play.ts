@@ -3,6 +3,7 @@ import { GAME_CONFIG } from '../config.ts';
 import { Player } from '../entities/Player.ts';
 import { Obstacle } from '../entities/Obstacle.ts';
 import { Coin } from '../entities/Coin.ts';
+import { HeartPickup } from '../entities/HeartPickup.ts';
 import { Road } from '../systems/road.ts';
 import { Parallax } from '../systems/parallax.ts';
 import { Spawner } from '../systems/spawner.ts';
@@ -20,8 +21,10 @@ import { ShieldEffect } from '../systems/shield.ts';
 import { EnergyBar } from '../ui/energyBar.ts';
 import { AudioBus } from '../systems/audioBus.ts';
 import { Narrator } from '../systems/narrator.ts';
+import { PostFxOverlay } from '../ui/postfx.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
 import type { GameEvent, Lane, PoseFrame } from '../../pose/types.ts';
+import { AGE_GROUPS, getAgeGroup } from '../../tuning.ts';
 
 const C = GAME_CONFIG;
 
@@ -38,6 +41,9 @@ export class Play extends Phaser.Scene {
   private energyBar!: EnergyBar;
   private obstacles: Obstacle[] = [];
   private coins: Coin[] = [];
+  private hearts: HeartPickup[] = [];
+  private lives = 3;
+  private invincibleUntil = 0;
   private speedMps: number = C.speedInitial;
   private speedBase: number = C.speedInitial;
   private elapsedMs = 0;
@@ -63,6 +69,7 @@ export class Play extends Phaser.Scene {
   private cumulativeArmsUp = 0;
   private audioBus!: AudioBus;
   private narrator!: Narrator;
+  private postFx!: PostFxOverlay;
   private bpmTrack: number[] = [];
   private bpmSampleAccum = 0;
   private startedAtMs = 0;
@@ -82,16 +89,17 @@ export class Play extends Phaser.Scene {
     this.spawner = new Spawner(getRng());
     this.scoring = new Scoring();
     this.hud = new HUD(this);
+    this.hud.setLives(3);
     this.energy = new EnergySystem();
     this.zones = new ZoneManager(this, getRng());
     this.shield = new ShieldEffect(this, this.player);
     this.energyBar = new EnergyBar(this);
     this.obstacles = [];
     this.coins = [];
-    {
-      const ageGroup = (() => { try { return localStorage.getItem('movemove.ageGroup') ?? '8-10'; } catch { return '8-10'; } })();
-      this.speedBase = ageGroup === '5-7' ? 4 : ageGroup === '11-12' ? 6 : C.speedInitial;
-    }
+    this.hearts = [];
+    this.lives = 3;
+    this.invincibleUntil = 0;
+    this.speedBase = AGE_GROUPS[getAgeGroup()].speedInitial;
     this.speedMps = this.speedBase;
     this.elapsedMs = 0;
     this.lastFrameAt = performance.now();
@@ -108,6 +116,7 @@ export class Play extends Phaser.Scene {
     this.energyLowSince = null;
     this.audioBus = new AudioBus(this);
     this.audioBus.startMusic();
+    this.postFx = new PostFxOverlay(this);
     const narratorEnabled = (() => { try { return localStorage.getItem('movemove.narrator.enabled') !== 'false'; } catch { return true; } })();
     this.narrator = new Narrator(this.audioBus, narratorEnabled);
     if (this.prepCountdownMs > 0) {
@@ -249,8 +258,7 @@ export class Play extends Phaser.Scene {
 
     this.elapsedMs += deltaMs;
     Play.cumulativePlayMs += deltaMs;
-    const ageGroup = (() => { try { return localStorage.getItem('movemove.ageGroup') ?? '8-10'; } catch { return '8-10'; } })();
-    const waterBreakInterval = ageGroup === '5-7' ? 6 * 60 * 1000 : ageGroup === '11-12' ? 10 * 60 * 1000 : 8 * 60 * 1000;
+    const waterBreakInterval = AGE_GROUPS[getAgeGroup()].waterBreakIntervalMs;
     if (Play.cumulativePlayMs - Play.lastWaterBreakAt > waterBreakInterval) {
       Play.lastWaterBreakAt = Play.cumulativePlayMs;
       this.scene.pause().launch('WaterBreak');
@@ -268,7 +276,7 @@ export class Play extends Phaser.Scene {
 
     // Velocidade base aumenta com tempo; energia multiplica
     const steps = Math.floor(this.elapsedMs / C.speedIncreaseIntervalMs);
-    const ageInitial = (() => { try { const a = localStorage.getItem('movemove.ageGroup') ?? '8-10'; return a === '5-7' ? 4 : a === '11-12' ? 6 : C.speedInitial; } catch { return C.speedInitial; } })();
+    const ageInitial = AGE_GROUPS[getAgeGroup()].speedInitial;
     this.speedBase = Math.min(C.speedMax, ageInitial + steps * C.speedIncreasePerInterval);
     this.speedMps = this.speedBase * this.energy.getSpeedFactor();
 
@@ -276,68 +284,100 @@ export class Play extends Phaser.Scene {
     this.road.update(this.speedMps, dt);
     this.player.update(dt);
 
+    const now = performance.now();
+
     for (const o of this.obstacles) o.update(this.speedMps, dt);
     for (const c of this.coins) c.update(this.speedMps, dt);
+    for (const h of this.hearts) h.update(this.speedMps, dt);
     this.obstacles = this.obstacles.filter((o) => o.alive);
     this.coins = this.coins.filter((c) => c.alive);
+    this.hearts = this.hearts.filter((h) => h.alive);
 
-    this.spawner.update(this, dt, this.speedMps, this.obstacles, this.coins);
+    this.spawner.update(this, dt, this.speedMps, this.obstacles, this.coins, this.hearts, this.lives);
 
-    const result = checkCollisions(this.player, this.obstacles, this.coins);
-    if (result.collidedObstacle) {
+    const invincible = now < this.invincibleUntil;
+    const result = checkCollisions(this.player, this.obstacles, this.coins, this.hearts);
+
+    if (result.collidedObstacle && !invincible) {
       if (this.shield.consume()) {
         result.collidedObstacle.destroy();
       } else {
-        this.narrator.speak(narratorLines.gameOver(), 2);
-        this.audioBus.stopMusic();
-        this.tweens.killAll();
-        this.sound.stopAll();
+        result.collidedObstacle.destroy();
+        this.lives -= 1;
+        this.hud.setLives(this.lives);
         if (this.cache.audio.exists('snd_hit')) this.sound.play('snd_hit');
-        if (this.cache.audio.exists('snd_gameover')) this.sound.play('snd_gameover');
-        const distance = this.scoring.getDistance();
-        const coins = this.scoring.getCoins();
-        const durationS = (performance.now() - this.startedAtMs) / 1000;
-        const bpmAvg = this.bpmTrack.length ? this.bpmTrack.reduce((a, b) => a + b, 0) / this.bpmTrack.length : 0;
-        const refs = getRefs(this);
-        void refs.runHistory.push({
-          id: `${Date.now()}`, startedAt: this.startedAtMs, durationS,
-          distance, coins, jacks: this.cumulativeJacks, armsUp: this.cumulativeArmsUp,
-          jumps: this.cumulativeJumps, ducks: this.cumulativeDucks, bpmAvg,
-          bpmTrack: this.bpmTrack.slice(-60),
+
+        if (this.lives <= 0) {
+          this.narrator.speak(narratorLines.gameOver(), 2);
+          this.audioBus.stopMusic();
+          this.tweens.killAll();
+          this.sound.stopAll();
+          if (this.cache.audio.exists('snd_gameover')) this.sound.play('snd_gameover');
+          const distance = this.scoring.getDistance();
+          const coins = this.scoring.getCoins();
+          const durationS = (performance.now() - this.startedAtMs) / 1000;
+          const bpmAvg = this.bpmTrack.length ? this.bpmTrack.reduce((a, b) => a + b, 0) / this.bpmTrack.length : 0;
+          const refs = getRefs(this);
+          void refs.runHistory.push({
+            id: `${Date.now()}`, startedAt: this.startedAtMs, durationS,
+            distance, coins, jacks: this.cumulativeJacks, armsUp: this.cumulativeArmsUp,
+            jumps: this.cumulativeJumps, ducks: this.cumulativeDucks, bpmAvg,
+            bpmTrack: this.bpmTrack.slice(-60),
+          });
+          void refs.profileStore.load().then((p) => refs.profileStore.update({
+            totalRuns: p.totalRuns + 1,
+            totalDistance: p.totalDistance + distance,
+            totalCoins: p.totalCoins + coins,
+            totalJacks: p.totalJacks + this.cumulativeJacks,
+            totalArmsUp: p.totalArmsUp + this.cumulativeArmsUp,
+          }));
+          void refs.missions.tick({
+            distance, jacks: this.cumulativeJacks, coins,
+            armsUp: this.cumulativeArmsUp, durationS,
+          }).then((completed) => {
+            if (completed.length > 0) this.narrator.speak(narratorLines.missionComplete(), 2);
+          });
+          this.cleanup();
+          const target = this.scene.manager.keys['Summary'] ? 'Summary' : 'GameOver';
+          const data = target === 'Summary'
+            ? { distance, coins, jacks: this.cumulativeJacks, armsUp: this.cumulativeArmsUp, jumps: this.cumulativeJumps, ducks: this.cumulativeDucks, durationS, bpmAvg, bpmTrack: this.bpmTrack.slice(-60) }
+            : { distance, coins };
+          this.scene.start(target, data);
+          return;
+        }
+
+        // Perdeu vida mas ainda tem vidas: 2s de invencibilidade + flash
+        this.invincibleUntil = now + 2000;
+        this.tweens.add({
+          targets: this.player.sprite,
+          alpha: { from: 0.2, to: 1 },
+          duration: 150,
+          repeat: 6,
+          yoyo: true,
+          onComplete: () => { this.player.sprite.setAlpha(1); },
         });
-        // RF20: incrementa profile aggregates
-        void refs.profileStore.load().then((p) => refs.profileStore.update({
-          totalRuns: p.totalRuns + 1,
-          totalDistance: p.totalDistance + distance,
-          totalCoins: p.totalCoins + coins,
-          totalJacks: p.totalJacks + this.cumulativeJacks,
-          totalArmsUp: p.totalArmsUp + this.cumulativeArmsUp,
-        }));
-        void refs.missions.tick({
-          distance, jacks: this.cumulativeJacks, coins,
-          armsUp: this.cumulativeArmsUp, durationS,
-        }).then((completed) => {
-          if (completed.length > 0) this.narrator.speak(narratorLines.missionComplete(), 2);
-        });
-        this.cleanup();
-        const target = this.scene.manager.keys['Summary'] ? 'Summary' : 'GameOver';
-        const data = target === 'Summary'
-          ? { distance, coins, jacks: this.cumulativeJacks, armsUp: this.cumulativeArmsUp, jumps: this.cumulativeJumps, ducks: this.cumulativeDucks, durationS, bpmAvg, bpmTrack: this.bpmTrack.slice(-60) }
-          : { distance, coins };
-        this.scene.start(target, data);
-        return;
+        this.narrator.speak(narratorLines.lostLife(this.lives), 2);
       }
     }
+
     for (const coin of result.collectedCoins) {
       coin.collect();
       this.scoring.addCoin();
       if (this.cache.audio.exists('snd_coin')) this.sound.play('snd_coin');
     }
 
+    if (result.collectedHeart) {
+      result.collectedHeart.collect();
+      this.lives = Math.min(3, this.lives + 1);
+      this.hud.setLives(this.lives);
+      this.narrator.speak(narratorLines.heartCollected(), 1);
+    }
+
     this.scoring.addDistance(dt, this.speedMps);
     this.hud.setDistance(this.scoring.getDistance());
     this.hud.setCoins(this.scoring.getCoins());
     this.hud.setFps(this.game.loop.actualFps);
+    this.hud.setBpm(this.currentBpm);
     this.energyBar.update(this.energy.getValue(), this.energy.getIntensity(), this.currentBpm);
 
     // BPM track sample (1Hz)
@@ -410,11 +450,13 @@ export class Play extends Phaser.Scene {
       this.eventListener = null;
     }
     if (this.cameraPreview) { this.cameraPreview.destroy(); this.cameraPreview = null; }
+    for (const h of this.hearts) h.collect();
+    this.hearts = [];
     if (this.zones) this.zones.destroy();
     if (this.shield) this.shield.reset();
     this.hideBanner();
     this.hideNoBody();
   }
 
-  shutdown(): void { this.cleanup(); }
+  shutdown(): void { this.cleanup(); this.postFx?.destroy(); }
 }

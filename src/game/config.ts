@@ -1,8 +1,13 @@
+import {
+  SPEED_INITIAL_MPS, SPEED_MAX_MPS,
+  SPEED_INCREASE_STEP_MPS, SPEED_INCREASE_INTERVAL_MS,
+} from '../tuning.ts';
+
 export const GAME_CONFIG = {
   /** Resolução lógica do canvas. Phaser escala pra tela. */
   width: 960,
   height: 540,
-  bgColor: 0x0b0d10,
+  bgColor: 0x4488ff,
 
   /** Mundo / pseudo-3D */
   horizonY: 220,
@@ -14,11 +19,11 @@ export const GAME_CONFIG = {
   scaleAtNear: 1.5,
   scaleAtHorizon: 0.1,
 
-  /** Velocidade do mundo (m/s) */
-  speedInitial: 5,
-  speedIncreasePerInterval: 1,
-  speedIncreaseIntervalMs: 30000,
-  speedMax: 15,
+  /** Velocidade do mundo (m/s) — valores em src/tuning.ts */
+  speedInitial: SPEED_INITIAL_MPS,
+  speedIncreasePerInterval: SPEED_INCREASE_STEP_MPS,
+  speedIncreaseIntervalMs: SPEED_INCREASE_INTERVAL_MS,
+  speedMax: SPEED_MAX_MPS,
 
   /** Spawning */
   spawnIntervalMsInitial: 2500,
@@ -53,6 +58,30 @@ export const GAME_CONFIG = {
 
   /** Bonus (Fase 2) */
   zoneBonusScore: 50,
+
+  /** Paleta Pixel Arcade */
+  palette: {
+    sky:        0x4488ff,
+    skyHorizon: 0x88aaff,
+    grassA:     0x44bb44,
+    grassB:     0x33aa33,
+    roadA:      0x888899,
+    roadB:      0x777788,
+    stripe:     0xffff00,
+    line:       0xffffff,
+  },
+  /** Neblina */
+  fog: { enabled: true, density: 0.7, color: 0x88aaff },
+  /** Flags de efeitos — desativar individualmente para performance */
+  fx: {
+    scanlines:   true,
+    vignette:    true,
+    speedLines:  true,
+    particles:   true,
+    chromatic:   false,
+    screenShake: true,
+    flash:       true,
+  },
 
   /** Persistência */
   storageKeys: {

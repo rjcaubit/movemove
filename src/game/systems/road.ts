@@ -3,7 +3,7 @@ import { GAME_CONFIG } from '../config.ts';
 
 const C = GAME_CONFIG;
 
-/** Estrada pseudo-3D: trapézio + linhas convergentes + faixas pulsando. */
+/** Estrada pseudo-3D: segmentos alternados + paleta Pixel Arcade + neblina. */
 export class Road {
   private gfx: Phaser.GameObjects.Graphics;
   private offset = 0;
@@ -22,37 +22,59 @@ export class Road {
 
   private draw(): void {
     const g = this.gfx;
+    const P = C.palette;
     g.clear();
 
-    const cx = C.width / 2;
-    const horizonHalfWidth = C.laneXOffsetAtHorizon * 1.7;
-    const nearHalfWidth = C.laneXOffsetAtNear * 1.7;
-    g.fillStyle(0x2c2f36, 1);
-    g.beginPath();
-    g.moveTo(cx - horizonHalfWidth, C.horizonY);
-    g.lineTo(cx + horizonHalfWidth, C.horizonY);
-    g.lineTo(cx + nearHalfWidth, C.height);
-    g.lineTo(cx - nearHalfWidth, C.height);
-    g.closePath();
-    g.fillPath();
+    const cx     = C.width / 2;
+    const nearHW = C.laneXOffsetAtNear * 1.7;
+    const numSeg  = 20;
 
-    g.lineStyle(2, 0x4a4d52, 1);
-    for (const offsetSign of [-1, 1]) {
+    // Céu com gradiente
+    g.fillGradientStyle(P.sky, P.sky, P.skyHorizon, P.skyHorizon, 1);
+    g.fillRect(0, 0, C.width, C.horizonY);
+
+    // Segmentos de pista + grama (do mais distante ao mais próximo)
+    for (let i = numSeg; i >= 0; i--) {
+      const t  = i / numSeg;
+      const t1 = (i + 1) / numSeg;
+      const y  = C.horizonY + (C.height - C.horizonY) * Math.pow(t,  1.3);
+      const y1 = C.horizonY + (C.height - C.horizonY) * Math.pow(t1, 1.3);
+      const hw  = nearHW * Math.pow(t,  1.1);
+      const hw1 = nearHW * Math.pow(t1, 1.1);
+
+      const fogAlpha = C.fog.enabled ? Math.max(0, 1 - t * (1 - C.fog.density) * 2) : 1;
+
+      // Grama
+      const grassCol = i % 2 === 0 ? P.grassA : P.grassB;
+      g.fillStyle(grassCol, fogAlpha);
+      g.fillRect(0, y, C.width, Math.max(1, y1 - y));
+
+      // Pista
+      const roadCol = i % 2 === 0 ? P.roadA : P.roadB;
+      g.fillStyle(roadCol, fogAlpha);
       g.beginPath();
-      g.moveTo(cx + offsetSign * C.laneXOffsetAtHorizon * 0.5, C.horizonY);
-      g.lineTo(cx + offsetSign * C.laneXOffsetAtNear * 0.5, C.height);
-      g.strokePath();
-    }
+      g.moveTo(cx - hw,  y);  g.lineTo(cx + hw,  y);
+      g.lineTo(cx + hw1, y1); g.lineTo(cx - hw1, y1);
+      g.closePath();
+      g.fillPath();
 
-    g.fillStyle(0xffffff, 0.6);
-    for (let i = 0; i < 12; i++) {
-      const stripeY = C.horizonY + (i * 80 + this.offset);
-      if (stripeY > C.height) break;
-      const tFromHorizon = (stripeY - C.horizonY) / (C.height - C.horizonY);
-      const x = cx;
-      const w = 4 + 8 * tFromHorizon;
-      const h = 12 + 12 * tFromHorizon;
-      g.fillRect(x - w / 2, stripeY, w, h);
+      // Stripes laterais amarelas
+      const sw = hw * 0.10;
+      g.fillStyle(P.stripe, fogAlpha);
+      g.beginPath();
+      g.moveTo(cx - hw,       y);  g.lineTo(cx - hw  + sw, y);
+      g.lineTo(cx - hw1 + sw, y1); g.lineTo(cx - hw1,      y1);
+      g.closePath(); g.fillPath();
+      g.beginPath();
+      g.moveTo(cx + hw,       y);  g.lineTo(cx + hw  - sw, y);
+      g.lineTo(cx + hw1 - sw, y1); g.lineTo(cx + hw1,      y1);
+      g.closePath(); g.fillPath();
+
+      // Linha central tracejada
+      if (i % 3 === 0) {
+        g.fillStyle(P.line, fogAlpha * 0.7);
+        g.fillRect(cx - 2, y, 4, (y1 - y) * 0.6);
+      }
     }
   }
 }

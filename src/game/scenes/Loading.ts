@@ -32,6 +32,18 @@ export class Loading extends Phaser.Scene {
   private async bootDetector(): Promise<void> {
     const refs = getRefs(this);
     try {
+      // Carregar audioSprite de SFX em background (gated — não bloqueia se ausente)
+      if (!this.cache.audio.exists('sfx')) {
+        this.load.audioSprite('sfx',
+          '/assets/audio/sfx.json',
+          ['/assets/audio/sfx.ogg', '/assets/audio/sfx.mp3']);
+        await new Promise<void>(resolve => {
+          this.load.once('complete', resolve);
+          this.load.once('loaderror', resolve); // não bloqueia se asset ausente
+          this.load.start();
+        });
+      }
+
       // Idempotente: se já carregou modelo + abriu câmera + iniciou, vai direto.
       if (!refs.detectorReady) {
         await refs.detector.loadModel((msg) => this.statusText.setText(msg));
