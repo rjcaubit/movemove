@@ -3,6 +3,7 @@ import { GAME_CONFIG } from './config.ts';
 import { Boot } from './scenes/Boot.ts';
 import { Welcome } from './scenes/Welcome.ts';
 import { Loading } from './scenes/Loading.ts';
+import { Tutorial } from './scenes/Tutorial.ts';
 import { Calibration } from './scenes/Calibration.ts';
 import { Play } from './scenes/Play.ts';
 import { GameOver } from './scenes/GameOver.ts';
@@ -18,7 +19,7 @@ export function startApp(): Phaser.Game {
       width: GAME_CONFIG.width,
       height: GAME_CONFIG.height,
     },
-    scene: [Boot, Welcome, Loading, Calibration, Play, GameOver],
+    scene: [Boot, Welcome, Loading, Tutorial, Calibration, Play, GameOver],
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } },
     render: { pixelArt: true, antialias: false },
   });
