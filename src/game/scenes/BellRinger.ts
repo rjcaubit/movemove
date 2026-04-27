@@ -5,6 +5,7 @@ import { Bell } from '../entities/Bell.ts';
 import { handAt } from '../../pose/spatialQueries.ts';
 import { getRng } from '../systems/rng.ts';
 import { getRefs } from '../orchestrator.ts';
+import { CameraBackdrop } from '../ui/cameraBackdrop.ts';
 import { Narrator } from '../systems/narrator.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
 import type { PoseFrame } from '../../pose/types.ts';
@@ -28,6 +29,7 @@ export class BellRinger extends Phaser.Scene {
   private narrator!: Narrator;
   private session: string[] = [];
   private rng: () => number = Math.random;
+  private backdrop: CameraBackdrop | null = null;
 
   constructor() { super('BellRinger'); }
 
@@ -55,6 +57,7 @@ export class BellRinger extends Phaser.Scene {
     }).setOrigin(1, 0);
 
     const refs = getRefs(this);
+    this.backdrop = new CameraBackdrop(this, refs.video, refs.onSmoothedFrame);
     this.narrator = new Narrator(null, true);
     this.unsubFrame = refs.onSmoothedFrame((frame: PoseFrame) => this.handleFrame(frame));
   }
@@ -118,6 +121,7 @@ export class BellRinger extends Phaser.Scene {
 
   shutdown(): void {
     if (this.unsubFrame) { this.unsubFrame(); this.unsubFrame = null; }
+    if (this.backdrop) { this.backdrop.destroy(); this.backdrop = null; }
     for (const b of this.bells) b.destroy();
     this.bells = [];
   }
