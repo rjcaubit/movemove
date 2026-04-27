@@ -104,8 +104,12 @@ export class PoseDetector {
   private toFrame(result: PoseLandmarkerResult, ts: number): PoseFrame | null {
     const lm = result.landmarks[0];
     if (!lm || lm.length === 0) return null;
+    // Câmera frontal é mostrada espelhada (selfie): quando o usuário se mexe pra
+    // direita, espera ver sua imagem ir pra direita também. Espelhamos x aqui
+    // pra que TODOS os consumidores (events, calibration, overlay) usem coords
+    // alinhadas com a percepção do usuário.
     const keypoints: Keypoint[] = lm.map((p) => ({
-      x: p.x,
+      x: 1 - p.x,
       y: p.y,
       z: p.z,
       visibility: p.visibility,
