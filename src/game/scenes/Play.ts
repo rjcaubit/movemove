@@ -23,9 +23,10 @@ import { AudioBus } from '../systems/audioBus.ts';
 import { Narrator } from '../systems/narrator.ts';
 import { PostFxOverlay } from '../ui/postfx.ts';
 import { BillboardLayer } from '../systems/billboard.ts';
+import { SpeedLines } from '../ui/speedLines.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
 import type { GameEvent, Lane, PoseFrame } from '../../pose/types.ts';
-import { AGE_GROUPS, getAgeGroup, FX_SHAKE_AMPLITUDE_PX, FX_SHAKE_DURATION_MS } from '../../tuning.ts';
+import { AGE_GROUPS, getAgeGroup, FX_SHAKE_AMPLITUDE_PX, FX_SHAKE_DURATION_MS, FX_CHROMATIC_STRENGTH, FX_PARTICLE_COIN_COUNT, FX_PARTICLE_HIT_COUNT } from '../../tuning.ts';
 
 const C = GAME_CONFIG;
 
@@ -72,6 +73,7 @@ export class Play extends Phaser.Scene {
   private narrator!: Narrator;
   private postFx!: PostFxOverlay;
   private billboard!: BillboardLayer;
+  private speedLines!: SpeedLines;
   private bpmTrack: number[] = [];
   private bpmSampleAccum = 0;
   private startedAtMs = 0;
@@ -117,9 +119,10 @@ export class Play extends Phaser.Scene {
     this.bpmSampleAccum = 0;
     this.startedAtMs = performance.now();
     this.energyLowSince = null;
-    this.audioBus = new AudioBus(this);
+    this.audioBus   = new AudioBus(this);
     this.audioBus.startMusic();
-    this.postFx = new PostFxOverlay(this);
+    this.postFx     = new PostFxOverlay(this);
+    this.speedLines = new SpeedLines(this);
     const narratorEnabled = (() => { try { return localStorage.getItem('movemove.narrator.enabled') !== 'false'; } catch { return true; } })();
     this.narrator = new Narrator(this.audioBus, narratorEnabled);
     if (this.prepCountdownMs > 0) {
@@ -359,6 +362,20 @@ export class Play extends Phaser.Scene {
             .setDepth(150);
           this.tweens.add({ targets: flash, alpha: 0, duration: 150, onComplete: () => flash.destroy() });
         }
+        if (C.fx.particles && result.collidedObstacle) {
+          const obs = result.collidedObstacle;
+          for (let i = 0; i < FX_PARTICLE_HIT_COUNT; i++) {
+            const p = this.add.circle(obs.sprite.x, obs.sprite.y, 5, 0xff4444).setDepth(20);
+            this.tweens.add({
+              targets: p,
+              x: obs.sprite.x + (Math.random() - 0.5) * 50,
+              y: obs.sprite.y - Math.random() * 30,
+              alpha: 0, scale: 0,
+              duration: 300 + Math.random() * 150,
+              onComplete: () => p.destroy(),
+            });
+          }
+        }
         this.tweens.add({
           targets: this.player.sprite,
           alpha: { from: 0.2, to: 1 },
@@ -372,6 +389,19 @@ export class Play extends Phaser.Scene {
     }
 
     for (const coin of result.collectedCoins) {
+      if (C.fx.particles) {
+        for (let i = 0; i < FX_PARTICLE_COIN_COUNT; i++) {
+          const p = this.add.circle(coin.sprite.x, coin.sprite.y - 20, 4, 0xffd700).setDepth(20);
+          this.tweens.add({
+            targets: p,
+            x: coin.sprite.x + (Math.random() - 0.5) * 60,
+            y: coin.sprite.y - 20 - Math.random() * 40,
+            alpha: 0, scale: 0,
+            duration: 400 + Math.random() * 200,
+            onComplete: () => p.destroy(),
+          });
+        }
+      }
       coin.collect();
       this.scoring.addCoin();
       if (this.cache.audio.exists('snd_coin')) this.sound.play('snd_coin');
@@ -389,6 +419,16 @@ export class Play extends Phaser.Scene {
     this.hud.setCoins(this.scoring.getCoins());
     this.hud.setFps(this.game.loop.actualFps);
     this.hud.setBpm(this.currentBpm);
+
+    // Speed lines + chromatic — baseados na intensidade de energia
+    const intensity = this.energy.getIntensity();
+    const isRunning = intensity === 'running';
+    if (C.fx.speedLines) {
+      this.speedLines.setVisible(isRunning);
+      this.speedLines.update(0.8);
+    }
+    const fps = this.game.loop.actualFps;
+    this.setChromaticAberration(isRunning && fps >= 40 ? FX_CHROMATIC_STRENGTH : 0);
     this.energyBar.update(this.energy.getValue(), this.energy.getIntensity(), this.currentBpm);
 
     // BPM track sample (1Hz)
@@ -469,5 +509,19 @@ export class Play extends Phaser.Scene {
     this.hideNoBody();
   }
 
-  shutdown(): void { this.cleanup(); this.postFx?.destroy(); this.billboard?.destroy(); }
+  private setChromaticAberration(strength: number): void {
+    if (!C.fx.chromatic) return;
+    const canvas = this.game.canvas;
+    canvas.style.filter = strength > 0
+      ? `drop-shadow(${strength}px 0 0 rgba(255,0,0,0.4)) drop-shadow(-${strength}px 0 0 rgba(0,255,255,0.4))`
+      : '';
+  }
+
+  shutdown(): void {
+    this.setChromaticAberration(0);
+    this.cleanup();
+    this.postFx?.destroy();
+    this.billboard?.destroy();
+    this.speedLines?.destroy();
+  }
 }
