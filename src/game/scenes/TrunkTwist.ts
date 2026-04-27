@@ -4,6 +4,7 @@ import { strings } from '../../i18n/strings.ts';
 import { TrunkTarget } from '../entities/TrunkTarget.ts';
 import { trunkRotationAngle } from '../../pose/spatialQueries.ts';
 import { getRefs } from '../orchestrator.ts';
+import { CameraBackdrop } from '../ui/cameraBackdrop.ts';
 import { Narrator } from '../systems/narrator.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
 import type { PoseFrame } from '../../pose/types.ts';
@@ -23,6 +24,7 @@ export class TrunkTwist extends Phaser.Scene {
   private unsubFrame: (() => void) | null = null;
   private narrator!: Narrator;
   private session: string[] = [];
+  private backdrop: CameraBackdrop | null = null;
 
   constructor() { super('TrunkTwist'); }
 
@@ -45,6 +47,7 @@ export class TrunkTwist extends Phaser.Scene {
     this.spawnNext();
 
     const refs = getRefs(this);
+    this.backdrop = new CameraBackdrop(this, refs.video, refs.onSmoothedFrame);
     this.narrator = new Narrator(null, true);
     this.unsubFrame = refs.onSmoothedFrame((frame: PoseFrame) => this.handleFrame(frame));
   }
@@ -98,6 +101,7 @@ export class TrunkTwist extends Phaser.Scene {
 
   shutdown(): void {
     if (this.unsubFrame) { this.unsubFrame(); this.unsubFrame = null; }
+    if (this.backdrop) { this.backdrop.destroy(); this.backdrop = null; }
     if (this.current) { this.current.destroy(); this.current = null; }
   }
 }
