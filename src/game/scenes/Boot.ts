@@ -32,9 +32,17 @@ export class Boot extends Phaser.Scene {
     this.makeRect('bg_far', 960, 80, 0x6a8caf);
     this.makeRect('bg_near', 960, 60, 0x4a6a8a);
 
-    // Sons placeholder: o Boot usaria load.audio, mas em modo autonomous sem
-    // arquivos reais a Web Audio API quebra o load. Pulamos o load — chamadas
-    // a sound.play() viram no-op (com warning silencioso) na Fase 0 do Phaser.
+    // Sons opcionais: tenta carregar mas não bloqueia se 404 (assets reais
+    // ficam pra polish issue A/V). cache.audio.exists() guarda chamadas play().
+    this.load.audio('music_run_loop', '/assets/sounds/music/run-loop.ogg');
+    this.load.audio('snd_shield_on', '/assets/sounds/shield_on.ogg');
+    this.load.audio('snd_jack_done', '/assets/sounds/jack_done.ogg');
+    this.load.audio('snd_water_break', '/assets/sounds/water_break.ogg');
+    this.load.audio('snd_mission_complete', '/assets/sounds/mission_complete.ogg');
+    this.load.on('loaderror', (file: { src: string }): void => {
+      // Esperado em ambiente sem assets reais; gated por cache.audio.exists() depois.
+      console.warn('Audio not loaded (placeholder ok):', file.src);
+    });
   }
 
   create(): void {

@@ -18,6 +18,9 @@ import { EnergySystem } from '../systems/energy.ts';
 import { ZoneManager } from '../systems/zones.ts';
 import { ShieldEffect } from '../systems/shield.ts';
 import { EnergyBar } from '../ui/energyBar.ts';
+import { AudioBus } from '../systems/audioBus.ts';
+import { Narrator } from '../systems/narrator.ts';
+import { narratorLines } from '../i18n/narratorLines.ts';
 import type { GameEvent, Lane, PoseFrame } from '../../pose/types.ts';
 
 const C = GAME_CONFIG;
@@ -56,6 +59,12 @@ export class Play extends Phaser.Scene {
   private cumulativeDucks = 0;
   private cumulativeJacks = 0;
   private cumulativeArmsUp = 0;
+  private audioBus!: AudioBus;
+  private narrator!: Narrator;
+  private bpmTrack: number[] = [];
+  private bpmSampleAccum = 0;
+  private startedAtMs = 0;
+  private energyLowSince: number | null = null;
 
   constructor() { super('Play'); }
 
@@ -88,6 +97,14 @@ export class Play extends Phaser.Scene {
     this.cumulativeDucks = 0;
     this.cumulativeJacks = 0;
     this.cumulativeArmsUp = 0;
+    this.bpmTrack = [];
+    this.bpmSampleAccum = 0;
+    this.startedAtMs = performance.now();
+    this.energyLowSince = null;
+    this.audioBus = new AudioBus(this);
+    this.audioBus.startMusic();
+    const narratorEnabled = (() => { try { return localStorage.getItem('movemove.narrator.enabled') !== 'false'; } catch { return true; } })();
+    this.narrator = new Narrator(this.audioBus, narratorEnabled);
     if (this.prepCountdownMs > 0) {
       this.prepText = this.add.text(C.width / 2, C.height / 2 - 40, '3', {
         fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '120px', color: '#4cd964',
@@ -131,10 +148,11 @@ export class Play extends Phaser.Scene {
           if (z) {
             const completed = z.tickJack();
             if (completed) {
-              // bônus +50 score (modelado como N moedas)
               for (let i = 0; i < 5; i++) this.scoring.addCoin();
             }
           }
+          if (this.cumulativeJacks === 1) this.narrator.speak(narratorLines.firstJack(), 2);
+          else if (this.cumulativeJacks % 5 === 0) this.narrator.speak(narratorLines.comboJack(this.cumulativeJacks), 1);
           break;
         }
         case 'arms_up': {
@@ -256,14 +274,36 @@ export class Play extends Phaser.Scene {
       if (this.shield.consume()) {
         result.collidedObstacle.destroy();
       } else {
+        this.narrator.speak(narratorLines.gameOver(), 2);
+        this.audioBus.stopMusic();
         this.tweens.killAll();
         this.sound.stopAll();
         if (this.cache.audio.exists('snd_hit')) this.sound.play('snd_hit');
         if (this.cache.audio.exists('snd_gameover')) this.sound.play('snd_gameover');
         const distance = this.scoring.getDistance();
         const coins = this.scoring.getCoins();
+        const durationS = (performance.now() - this.startedAtMs) / 1000;
+        const bpmAvg = this.bpmTrack.length ? this.bpmTrack.reduce((a, b) => a + b, 0) / this.bpmTrack.length : 0;
+        const refs = getRefs(this);
+        void refs.runHistory.push({
+          id: `${Date.now()}`, startedAt: this.startedAtMs, durationS,
+          distance, coins, jacks: this.cumulativeJacks, armsUp: this.cumulativeArmsUp,
+          jumps: this.cumulativeJumps, ducks: this.cumulativeDucks, bpmAvg,
+          bpmTrack: this.bpmTrack.slice(-60),
+        });
+        void refs.missions.tick({
+          distance, jacks: this.cumulativeJacks, coins,
+          armsUp: this.cumulativeArmsUp, durationS,
+        }).then((completed) => {
+          if (completed.length > 0) this.narrator.speak(narratorLines.missionComplete(), 2);
+        });
         this.cleanup();
-        this.scene.start('GameOver', { distance, coins });
+        // Summary scene chega na Fase D; até lá GameOver é o destino.
+        const target = this.scene.manager.keys['Summary'] ? 'Summary' : 'GameOver';
+        const data = target === 'Summary'
+          ? { distance, coins, jacks: this.cumulativeJacks, armsUp: this.cumulativeArmsUp, jumps: this.cumulativeJumps, ducks: this.cumulativeDucks, durationS, bpmAvg, bpmTrack: this.bpmTrack.slice(-60) }
+          : { distance, coins };
+        this.scene.start(target, data);
         return;
       }
     }
@@ -278,6 +318,25 @@ export class Play extends Phaser.Scene {
     this.hud.setCoins(this.scoring.getCoins());
     this.hud.setFps(this.game.loop.actualFps);
     this.energyBar.update(this.energy.getValue(), this.energy.getIntensity(), this.currentBpm);
+
+    // BPM track sample (1Hz)
+    this.bpmSampleAccum += deltaMs;
+    if (this.bpmSampleAccum >= 1000) {
+      this.bpmSampleAccum = 0;
+      this.bpmTrack.push(this.currentBpm);
+      if (this.bpmTrack.length > 600) this.bpmTrack.shift();
+    }
+
+    // Narrator: energia baixa por 3s
+    if (this.energy.getValue() < 20) {
+      if (this.energyLowSince === null) this.energyLowSince = performance.now();
+      else if (performance.now() - this.energyLowSince > 3000) {
+        this.narrator.speak(narratorLines.energyLow(), 1);
+        this.energyLowSince = performance.now() + 5000; // não repete por 8s
+      }
+    } else {
+      this.energyLowSince = null;
+    }
   }
 
   private showNoBody(): void {

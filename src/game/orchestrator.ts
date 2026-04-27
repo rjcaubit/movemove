@@ -17,6 +17,9 @@ import { EventDetector } from '../pose/events.ts';
 import { KeyboardDebug } from '../debug/keyboard.ts';
 import { DebugPanel } from '../ui/debugPanel.ts';
 import { installOrientationGuard } from './ui/orientationGuard.ts';
+import { ProfileStore } from './storage/profile.ts';
+import { RunHistoryStore } from './storage/runHistory.ts';
+import { MissionSystem } from './systems/missions.ts';
 import type { GameEvent, PoseFrame } from '../pose/types.ts';
 
 export interface AppRefs {
@@ -27,6 +30,9 @@ export interface AppRefs {
   video: HTMLVideoElement;
   /** Subscribe to smoothed PoseFrame stream (after EMA). Returns unsubscribe. */
   onSmoothedFrame: (cb: (f: PoseFrame) => void) => () => void;
+  profileStore: ProfileStore;
+  runHistory: RunHistoryStore;
+  missions: MissionSystem;
 }
 
 export function startApp(): Phaser.Game {
@@ -72,9 +78,15 @@ export function startApp(): Phaser.Game {
     });
   }
 
+  const profileStore = new ProfileStore();
+  const runHistory = new RunHistoryStore();
+  const missions = new MissionSystem(profileStore);
+  void missions.load();
+
   const refs: AppRefs = {
     detector, smoother, calibrator, eventDetector, video,
     onSmoothedFrame: (cb) => { smoothedSubs.add(cb); return () => smoothedSubs.delete(cb); },
+    profileStore, runHistory, missions,
   };
 
   const game = new Phaser.Game({
