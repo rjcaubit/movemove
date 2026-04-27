@@ -2,7 +2,38 @@
 
 export const strings = {
   app: {
-    title: 'Movemove — Detector de Movimento',
+    title: 'Movemove — Endless Runner',
+  },
+  tutorial: {
+    slide1Title: 'PULE',
+    slide1Hint: 'Pule pra desviar de barreiras altas.',
+    slide2Title: 'AGACHE',
+    slide2Hint: 'Agache pra desviar de barreiras baixas.',
+    slide3Title: 'MUDE DE LANE',
+    slide3Hint: 'Mexa o quadril pros lados pra trocar de lane.',
+    skip: 'Pular',
+    next: 'Próximo',
+    start: 'Vamos jogar!',
+  },
+  play: {
+    distance: 'm',
+    coins: 'moedas',
+    fps: 'FPS',
+    mute: 'Mute',
+    unmute: 'Som',
+  },
+  gameOver: {
+    title: 'GAME OVER',
+    distance: 'Distância',
+    coins: 'Moedas',
+    best: 'Recorde',
+    newRecord: 'NOVO RECORDE!',
+    playAgain: 'Jogar de novo',
+    recalibrate: 'Recalibrar',
+  },
+  orientation: {
+    rotate: 'Vire o celular pra paisagem pra jogar melhor.',
+    continue: 'Continuar assim mesmo',
   },
   welcome: {
     headline: 'Olá! Vamos detectar seus movimentos.',
