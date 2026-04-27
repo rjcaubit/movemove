@@ -2,6 +2,46 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Todas as datas são UTC.
 
+## 2026-04-27 — #4 — feat: Fase 2 — camada de exercício saudável + mini-jogos lúdicos
+
+### Added
+- `idb-keyval@^6` + `@lingui/core@^4` adotados; `strings.ts` virou wrapper `i18n._()` (catalog vazio = identity fallback).
+- `OneEuroSmoother` criado (preparado, não ativado por default — ADR-5).
+- Cadência ganha `bpm` + `intensity` (4 tiers: none/walking/jogging/running) + decay event quando jogador para.
+- `EnergySystem`: barra 0-100 sobe com cadência, multiplica velocidade do mundo (linear abaixo de 30, full acima).
+- `ZoneManager` com 2 tipos: `JackZone` (5 polichinelos em 4s → bônus) e `ArmsZone` (3s arms_up sustentado → escudo).
+- `ShieldEffect`: aura azul, 1 carga, consome em colisão antes de game over.
+- `MissionSystem` + `ProfileStore` + `RunHistoryStore` (idb-keyval, schema v1, migra soft do localStorage).
+- 7 templates de missão diária (`public/data/missions.json`) com seed `version + YYYY-MM-DD`.
+- `AudioBus` com música em loop + ducking automático (~500ms restore).
+- `Narrator` Web Speech API pt-BR com cooldown 3s + cancelamento por prioridade + fallback gracioso.
+- 3 cenas novas: `Settings` (sliders + toggles + radio age), `Summary` (substitui GameOver default; sparkline SVG), `WaterBreak` (modal a cada 8 min, ajustável por idade).
+- Welcome ganha 2 botões: "Mini-jogos" + "Configurações".
+- **Modo Mini-jogos** (refinamento /sdd-refine): 3 jogos lúdicos focados em movimentos de braço/tronco:
+  - **Pega o Bicho** (60s, mão única ou alternando por cor azul/vermelho)
+  - **Roda Tronco** (90s, threshold 25° sustentado 200ms)
+  - **Toca o Sino** (75s, BPM 100 com combo)
+  - `MiniGamesHub` + `MiniGameResult` + Sessão Guiada (3 jogos em sequência)
+- `src/pose/spatialQueries.ts` (handAt / trunkRotationAngle / bothHandsAbove) — preserva invariante "scenes não leem keypoints crus".
+- `?debug=1` ganha B/S/M/W (boost/shield/skip-summary/water-break).
+- `__movemoveDebug` ganha `triggerWaterBreak`, `forceCadence`, `skipMiniGame`, `skipToScene` com data.
+- E2E: 4 testes novos (CT09/CT11/CT12 + CT13/CT16). 9/9 passando.
+
+### Decisões autônomas (mantidas da Fase 1, ainda válidas)
+- Texturas procedurais via `Phaser.Graphics.generateTexture` (sprites Kenney reais ainda em polish issue).
+- Áudio gated por `cache.audio.exists()` (sons reais em polish issue).
+- Push pra main bloqueado por hook → `gh pr merge`.
+
+### Pendências
+- CT01 manual humano 15min (filho do dev no celular alvo) — validação pós-merge.
+- Música real curada + voz neural pré-gravada → polish A/V issue separada.
+
+### Spec
+- Design: `docs/sdd/ISSUE_4/00-design.md`
+- Research: `docs/sdd/ISSUE_4/01-research.md`
+- Spec: `docs/sdd/ISSUE_4/02-spec.md` (24 RFs base + 11 RFs do refine + 16 CTs)
+- Tasks: `docs/sdd/ISSUE_4/03-tasks.md` (Fases A-F)
+
 ## 2026-04-26 — #3 — feat: Fase 1 — endless runner mínimo (Phaser 4)
 
 ### Added

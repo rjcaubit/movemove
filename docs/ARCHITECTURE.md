@@ -1,6 +1,6 @@
-# Architecture — Movemove (Fase 1)
+# Architecture — Movemove (Fase 2)
 
-> Atualizado: 2026-04-26 (Issue #3)
+> Atualizado: 2026-04-27 (Issue #4)
 
 ## Camadas
 
@@ -75,7 +75,13 @@ GameOver → Play (Jogar de novo) ou Calibration (Recalibrar)
 | Cenas | Cenas | `this.scene.start(key, data?)` | data opcional |
 | Cenas | Cross-cena state | `game.registry.get/set` | `AppRefs` em `'refs'` |
 
+## Camadas adicionadas na Fase 2
+
+- **Storage Layer** (`src/game/storage/`): `ProfileStore` + `RunHistoryStore` via `idb-keyval` (schema v1).
+- **Audio Layer** (`src/game/systems/audioBus.ts` + `narrator.ts`): `Phaser.Sound` (música/SFX) + Web Speech API (TTS pt-BR).
+- **Mission Layer** (`src/game/systems/missions.ts`): carrega `public/data/missions.json`, gera 3 missões/dia com seed determinístico.
+- **MiniGames Layer** (`src/game/scenes/{MiniGamesHub,CatchBicho,TrunkTwist,BellRinger,MiniGameResult}.ts`): modo paralelo ao endless runner. Consome `src/pose/spatialQueries.ts` (handAt / trunkRotationAngle).
+
 ## Próximas fases
 
-- **Fase 2 (#4):** adiciona cadência de corrida medida (gameplay reage a `cadence`), polichinelos como power-up (`jumping_jack`), braços-pra-cima como escudo (`arms_up`), narrador (`@lingui/core`), missões diárias (IndexedDB via `idb-keyval`), música ritmada.
-- **Fase 3 (#5):** troca pose driver para MoveNet MultiPose, modo dois jogadores, mundos/temas plugáveis.
+- **Fase 3 (#5):** troca pose driver para MoveNet MultiPose, modo dois jogadores, mundos/temas plugáveis, múltiplos personagens.

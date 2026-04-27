@@ -1,18 +1,19 @@
 # CODEMAP — Movemove
 
-> Atualizado: 2026-04-26 (Issue #3 — Fase 1)
+> Atualizado: 2026-04-27 (Issue #4 — Fase 2 + mini-jogos)
 > Fonte da verdade sobre estrutura, módulos e padrões.
 
 ## Status do projeto
-**Fase atual:** 1 (endless runner mínimo, jogável). Sem backend, sem persistência além de `localStorage`.
+**Fase atual:** 2 (cardio + missões + narrador + mini-jogos lúdicos). Persistência via IndexedDB (`idb-keyval`).
 
 ## Stack
 - **Bundler/dev:** Vite 6+ (HTTPS local via `vite-plugin-mkcert`)
 - **Linguagem:** TypeScript 5.6+
 - **Pose detection:** `@mediapipe/tasks-vision` (Pose Landmarker, modelo `lite`)
 - **Engine de jogo:** **Phaser 4.x** (ADR-4 do study #1) — `import * as Phaser` (ESM sem default)
-- **i18n:** `src/i18n/strings.ts` PT-BR-only sem framework (Lingui na Fase 2)
-- **Persistência:** `localStorage` (recorde, mute, tutorial flag); `idb-keyval` chega na Fase 2
+- **i18n:** `@lingui/core@^4` runtime (catalog `pt-BR.po` quando compilado; identity fallback enquanto vazio)
+- **Persistência:** `localStorage` (recorde, settings, age, audio volumes) + **`idb-keyval@^6`** (profile + runHistory schema v1)
+- **Áudio:** Phaser.Sound + Web Speech API (TTS pt-BR pro narrador)
 - **Deploy:** Cloudflare Pages
 - **E2E:** Playwright (HTTPS via mkcert; `--use-fake-device`)
 
@@ -44,33 +45,41 @@ movemove/
 │  │  ├─ debugPanel.ts      # mantido (HTML por cima do canvas)
 │  │  ├─ keypointOverlay.ts # reusado em cameraPreview
 │  │  └─ errorScreen.ts     # fallback fatal HTML
-│  └─ game/                 # ⭐ NOVO (Fase 1) — camada de jogo Phaser 4
-│     ├─ orchestrator.ts    # cria pose layer + Phaser.Game; refs via game.registry
-│     ├─ config.ts          # GAME_CONFIG (separado de POSE_CONFIG)
+│  └─ game/                 # camada de jogo Phaser 4
+│     ├─ orchestrator.ts    # pose layer + Phaser.Game; refs via game.registry (incl. profile/missions)
+│     ├─ config.ts          # GAME_CONFIG (energy/zones/audio/etc)
 │     ├─ scenes/
-│     │  ├─ Boot.ts         # gera texturas placeholder via Graphics.generateTexture
-│     │  ├─ Welcome.ts
-│     │  ├─ Loading.ts      # MediaPipe load + camera open
-│     │  ├─ Tutorial.ts     # 3 slides; flag localStorage
-│     │  ├─ Calibration.ts  # consome Calibrator.feed real
-│     │  ├─ Play.ts         # loop principal
-│     │  └─ GameOver.ts
+│     │  ├─ Boot.ts / Welcome.ts / Loading.ts / Tutorial.ts / Calibration.ts
+│     │  ├─ Play.ts         # loop principal + cadence/jacks/arms_up + EnergyBar + WaterBreak trigger
+│     │  ├─ GameOver.ts     # fallback (Summary é o destino default)
+│     │  ├─ Demo.ts         # ?demo=1 cenário sem câmera
+│     │  ├─ Settings.ts     # ⭐ Fase 2 — sliders volume, toggles narrator/captions, radio age
+│     │  ├─ Summary.ts      # ⭐ Fase 2 — distância+coins+jacks+...+sparkline+missions
+│     │  ├─ WaterBreak.ts   # ⭐ Fase 2 — modal 30s a cada 8min cumulativos
+│     │  ├─ MiniGamesHub.ts # ⭐ Fase 2 (refine) — hub dos 3 jogos
+│     │  ├─ CatchBicho.ts / TrunkTwist.ts / BellRinger.ts # ⭐ mini-jogos
+│     │  └─ MiniGameResult.ts                              # ⭐
 │     ├─ entities/
-│     │  ├─ Player.ts
-│     │  ├─ Obstacle.ts     # barrier | low_barrier | wall_lane
-│     │  └─ Coin.ts
+│     │  ├─ Player.ts / Obstacle.ts / Coin.ts
+│     │  ├─ JackZone.ts / ArmsZone.ts # ⭐ Fase 2
+│     │  └─ Bicho.ts / TrunkTarget.ts / Bell.ts # ⭐ mini-jogos (procedurais)
 │     ├─ systems/
-│     │  ├─ pseudo3d.ts     # zToScale, zToY, laneToX
-│     │  ├─ road.ts         # estrada 3-lane convergente
-│     │  ├─ parallax.ts     # 3 camadas
-│     │  ├─ spawner.ts      # determinístico via ?seed=
-│     │  ├─ scoring.ts      # distância + moedas + recorde localStorage
-│     │  ├─ collision.ts    # z<0.15 + lane match
-│     │  └─ rng.ts          # mulberry32
+│     │  ├─ pseudo3d.ts / road.ts / parallax.ts / spawner.ts / scoring.ts / collision.ts / rng.ts
+│     │  ├─ energy.ts        # ⭐ EnergySystem (4 tiers, multiplicador velocidade)
+│     │  ├─ zones.ts         # ⭐ ZoneManager (JackZone+ArmsZone)
+│     │  ├─ shield.ts        # ⭐ ShieldEffect (1 carga)
+│     │  ├─ missions.ts      # ⭐ MissionSystem (carrega missions.json, seed por dia, tick)
+│     │  ├─ audioBus.ts      # ⭐ música loop + ducking
+│     │  └─ narrator.ts      # ⭐ Web Speech API pt-BR
+│     ├─ storage/            # ⭐ Fase 2
+│     │  ├─ profile.ts       # ProfileStore (idb-keyval, schema v1, migra do localStorage)
+│     │  └─ runHistory.ts    # RunHistoryStore (últimas 30 partidas FIFO)
+│     ├─ i18n/
+│     │  └─ narratorLines.ts # ⭐ Fase 2 — frases por evento via @lingui
 │     └─ ui/
-│        ├─ hud.ts          # Text monoespace bold (substitui bitmap font na Fase 1)
-│        ├─ cameraPreview.ts # mini-preview canto superior direito
-│        └─ orientationGuard.ts # overlay HTML retrato
+│        ├─ hud.ts / cameraPreview.ts / orientationGuard.ts
+│        ├─ energyBar.ts     # ⭐ Fase 2 — barra com cor por tier + BPM
+│        └─ sparkline.ts     # ⭐ Fase 2 — SVG inline com downsample
 ├─ public/
 │  ├─ manifest.webmanifest  # PWA básico, display: browser
 │  ├─ icons/                # 192/512 placeholder
@@ -112,8 +121,8 @@ movemove/
 |-------|------|--------|--------|
 | #1 | study | Viabilidade técnica e roadmap das Fases 0-3 | Aberta (pai conceitual) |
 | #2 | feat | Fase 0 — PoC de detecção de pose | Encerrada (CT01/RNF01-03 deferidos pra #3) |
-| #3 | feat | Fase 1 — endless runner mínimo | **PR aberta — aguardando review/merge humano** |
-| #4 | feat | Fase 2 — camada de exercício saudável | Aguardando #3 mergear + CT01 |
+| #3 | feat | Fase 1 — endless runner mínimo | Mergeada ✅ |
+| #4 | feat | Fase 2 — camada de exercício saudável + mini-jogos | **Em andamento — PR aberta** |
 | #5 | feat | Fase 3 — conteúdo, progressão, 2P | Aguardando #4 |
 
 ## Achados acumulados
