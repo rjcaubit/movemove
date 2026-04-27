@@ -41,6 +41,19 @@ export const GAME_CONFIG = {
   /** Coleta de moeda (RF09 — mais permissivo que collisão de obstáculo) */
   coinPickupZThreshold: 0.10,
 
+  /** Energia (Fase 2) */
+  energyInitial: 50,
+  energyDeceleratesBelow: 30,
+
+  /** Zonas especiais (Fase 2) */
+  zoneSpacingMeters: 80,
+  jackZoneRequired: 5,
+  jackZoneWindowMs: 4000,
+  armsZoneWindowMs: 3000,
+
+  /** Bonus (Fase 2) */
+  zoneBonusScore: 50,
+
   /** Persistência */
   storageKeys: {
     bestDistance: 'movemove.bestDistance',
