@@ -32,7 +32,7 @@ export class Spawner {
   private rng:             () => number;
   private opponents_:      Opponent[] = [];
   private boss_:           Boss | null = null;
-  private bossNextAt       = 1000;
+  private bossNextAt       = 200;
 
   constructor(rng: () => number) { this.rng = rng; }
 
@@ -71,8 +71,8 @@ export class Spawner {
       hearts.push(new HeartPickup(scene, lane, 0.95));
     }
 
-    // Oponentes a partir de 30s
-    if (this.elapsedMs >= 30_000 && Math.random() < 0.3 * dtSec) {
+    // Oponentes a partir de 5s
+    if (this.elapsedMs >= 5_000 && Math.random() < 1.2 * dtSec) {
       const lane = ALL_LANES[Math.floor(this.rng() * ALL_LANES.length)];
       const idx  = Math.floor(this.rng() * 6);
       let opp: Opponent;
