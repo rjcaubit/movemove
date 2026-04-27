@@ -3,6 +3,7 @@ import { GAME_CONFIG } from '../config.ts';
 import { Obstacle, type ObstacleKind } from '../entities/Obstacle.ts';
 import { Coin } from '../entities/Coin.ts';
 import { HeartPickup } from '../entities/HeartPickup.ts';
+import { Puncher }   from '../entities/Puncher.ts';
 import { Robot }     from '../entities/Robot.ts';
 import { Animal }    from '../entities/Animal.ts';
 import { Zombie }    from '../entities/Zombie.ts';
@@ -12,13 +13,13 @@ import { NpcRunner } from '../entities/NpcRunner.ts';
 import { Boss }      from '../entities/Boss.ts';
 import type { Lane } from '../../pose/types.ts';
 
-export type Opponent = Robot | Animal | Zombie | Ghost | Alien | NpcRunner;
+export type Opponent = Robot | Animal | Zombie | Ghost | Alien | NpcRunner | Puncher;
 
 const C = GAME_CONFIG;
 const ALL_KINDS: ObstacleKind[] = [
   'barrier', 'low_barrier', 'wall_lane',
   'jump_brick', 'jump_column',
-  'duck_log', 'duck_banner',
+  'duck_log', 'duck_banner', 'laser_beam',
 ];
 const ALL_LANES: Lane[] = [-1, 0, 1];
 const HEART_EVERY_METERS = 600;
@@ -74,14 +75,15 @@ export class Spawner {
     // Oponentes a partir de 5s
     if (this.elapsedMs >= 5_000 && Math.random() < 1.2 * dtSec) {
       const lane = ALL_LANES[Math.floor(this.rng() * ALL_LANES.length)];
-      const idx  = Math.floor(this.rng() * 6);
       let opp: Opponent;
-      if      (idx === 0) opp = new Robot(scene, lane);
-      else if (idx === 1) opp = new Animal(scene, lane);
-      else if (idx === 2) opp = new Zombie(scene, lane);
-      else if (idx === 3) opp = new Ghost(scene, lane);
-      else if (idx === 4) opp = new Alien(scene, lane);
-      else                opp = new NpcRunner(scene, lane);
+      const idx2 = Math.floor(this.rng() * 7);
+      if      (idx2 === 0) opp = new Robot(scene, lane);
+      else if (idx2 === 1) opp = new Animal(scene, lane);
+      else if (idx2 === 2) opp = new Zombie(scene, lane);
+      else if (idx2 === 3) opp = new Ghost(scene, lane);
+      else if (idx2 === 4) opp = new Alien(scene, lane);
+      else if (idx2 === 5) opp = new Puncher(scene, lane);
+      else                 opp = new NpcRunner(scene, lane);
       this.opponents_.push(opp);
     }
 

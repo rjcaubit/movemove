@@ -165,6 +165,16 @@ export class Play extends Phaser.Scene {
           break;
         case 'jumping_jack': {
           this.cumulativeJacks += 1;
+          // Soco: derrota Punchers na mesma lane
+          { const pl = this.player.getLane();
+            for (const opp of this.spawner.getOpponents()) {
+              if (opp.kind === 'puncher' && opp.lane === pl && opp.z <= C.collisionZThreshold * 2) {
+                (opp as import('../entities/Puncher.ts').Puncher).punch();
+                this.scoring.addCoin();
+                this.audioBus.playSfx('coin_collect');
+              }
+            }
+          }
           const z = this.zones.activeJackZone();
           if (z) {
             const completed = z.tickJack();

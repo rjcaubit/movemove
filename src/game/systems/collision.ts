@@ -87,6 +87,7 @@ export function checkCollisions(
     if (obs.kind === 'jump_column' && playerState === 'jumping') evading = true;
     if (obs.kind === 'duck_log'    && playerState === 'ducking') evading = true;
     if (obs.kind === 'duck_banner' && playerState === 'ducking') evading = true;
+    if (obs.kind === 'laser_beam'  && playerState === 'ducking') evading = true;
     // wall_lane: nenhuma evasão por estado — só lane diferente evita (filtrado acima)
     if (!evading) {
       result.collidedObstacle = obs;
