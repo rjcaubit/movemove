@@ -41,6 +41,9 @@ export interface AppRefs {
   profileStore: ProfileStore;
   runHistory: RunHistoryStore;
   missions: MissionSystem;
+  /** True quando loadModel + openCamera + start já rodaram (Loading idempotente). */
+  detectorReady: boolean;
+  markDetectorReady: () => void;
 }
 
 export function startApp(): Phaser.Game {
@@ -95,6 +98,8 @@ export function startApp(): Phaser.Game {
     detector, smoother, calibrator, eventDetector, video,
     onSmoothedFrame: (cb) => { smoothedSubs.add(cb); return () => smoothedSubs.delete(cb); },
     profileStore, runHistory, missions,
+    detectorReady: false,
+    markDetectorReady: () => { refs.detectorReady = true; },
   };
 
   const game = new Phaser.Game({

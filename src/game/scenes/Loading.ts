@@ -5,10 +5,17 @@ import { getRefs } from '../orchestrator.ts';
 import type { ErrorKind } from '../../ui/errorScreen.ts';
 import { showError } from '../../ui/errorScreen.ts';
 
+interface LoadingData { next?: string }
+
 export class Loading extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
+  private nextScene = '';
 
   constructor() { super('Loading'); }
+
+  init(data: LoadingData): void {
+    this.nextScene = data?.next ?? '';
+  }
 
   create(): void {
     const { width, height } = GAME_CONFIG;
@@ -25,11 +32,22 @@ export class Loading extends Phaser.Scene {
   private async bootDetector(): Promise<void> {
     const refs = getRefs(this);
     try {
-      await refs.detector.loadModel((msg) => this.statusText.setText(msg));
-      this.statusText.setText(strings.loading.statusOpeningCamera);
-      await refs.detector.openCamera(refs.video);
-      refs.detector.start(refs.video);
+      // Idempotente: se já carregou modelo + abriu câmera + iniciou, vai direto.
+      if (!refs.detectorReady) {
+        await refs.detector.loadModel((msg) => this.statusText.setText(msg));
+        this.statusText.setText(strings.loading.statusOpeningCamera);
+        await refs.detector.openCamera(refs.video);
+        refs.detector.start(refs.video);
+        refs.markDetectorReady();
+      }
       this.statusText.setText(strings.loading.statusReady);
+      // Destino:
+      // - Se foi passado data.next → vai pra lá
+      // - Senão fluxo original: Tutorial (1ª vez) ou Calibration
+      if (this.nextScene) {
+        this.scene.start(this.nextScene);
+        return;
+      }
       const done = (() => { try { return localStorage.getItem(GAME_CONFIG.storageKeys.tutorialDone) === 'true'; } catch { return false; } })();
       this.scene.start(done ? 'Calibration' : 'Tutorial');
     } catch (err) {
