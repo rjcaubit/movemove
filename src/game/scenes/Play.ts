@@ -81,7 +81,7 @@ export class Play extends Phaser.Scene {
       switch (ev.type) {
         case 'jump': this.player.jump(); break;
         case 'duck': this.player.duck(); break;
-        case 'lane_change': this.player.setLane(ev.lane as Lane); break;
+        case 'lane_change': this.player.setLane(ev.lane); break;
         // arms_up/cadence/jumping_jack ignorados pelo gameplay nesta fase
       }
     };
@@ -89,7 +89,7 @@ export class Play extends Phaser.Scene {
 
     this.unsubFrame = refs.onSmoothedFrame((frame: PoseFrame) => this.handleFrame(frame));
 
-    // Keyboard fallback (também redundante via KeyboardDebug → bus, mas mantém atalho local)
+    // Fallback keyboard sempre ativo (KeyboardDebug global só roda com ?debug=1)
     if (this.input.keyboard) {
       this.input.keyboard.on('keydown-SPACE', () => this.player.jump());
       this.input.keyboard.on('keydown-DOWN', () => this.player.duck());
@@ -164,6 +164,8 @@ export class Play extends Phaser.Scene {
 
     const result = checkCollisions(this.player, this.obstacles, this.coins);
     if (result.collidedObstacle) {
+      this.tweens.killAll();
+      this.sound.stopAll();
       if (this.cache.audio.exists('snd_hit')) this.sound.play('snd_hit');
       if (this.cache.audio.exists('snd_gameover')) this.sound.play('snd_gameover');
       const distance = this.scoring.getDistance();

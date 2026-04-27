@@ -14,11 +14,12 @@ export function installOrientationGuard(): void {
   overlay.append(icon, text, btn);
 
   const mql = window.matchMedia('(orientation: portrait)');
-  const isMobile = window.innerWidth < 900;
   const apply = (): void => {
+    const isMobile = window.innerWidth < 900;
     if (mql.matches && isMobile) overlay.classList.remove('hidden');
     else overlay.classList.add('hidden');
   };
   apply();
   mql.addEventListener('change', apply);
+  window.addEventListener('resize', apply);
 }
