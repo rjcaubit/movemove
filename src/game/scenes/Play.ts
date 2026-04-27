@@ -8,7 +8,7 @@ import { Road } from '../systems/road.ts';
 import { Parallax } from '../systems/parallax.ts';
 import { Spawner } from '../systems/spawner.ts';
 import { Scoring } from '../systems/scoring.ts';
-import { checkCollisions } from '../systems/collision.ts';
+import { checkCollisions, checkOpponentCollisions } from '../systems/collision.ts';
 import { HUD } from '../ui/hud.ts';
 import { getRng } from '../systems/rng.ts';
 import { CameraPreview } from '../ui/cameraPreview.ts';
@@ -78,6 +78,7 @@ export class Play extends Phaser.Scene {
   private bpmSampleAccum = 0;
   private startedAtMs = 0;
   private energyLowSince: number | null = null;
+  private armsUpThisFrame = false;
 
   constructor() { super('Play'); }
 
@@ -177,6 +178,7 @@ export class Play extends Phaser.Scene {
         }
         case 'arms_up': {
           this.cumulativeArmsUp += 1;
+          this.armsUpThisFrame = true;
           const z = this.zones.activeArmsZone();
           if (z) z.registerArmsUp(50);
           break;
@@ -386,6 +388,27 @@ export class Play extends Phaser.Scene {
         });
         this.narrator.speak(narratorLines.lostLife(this.lives), 2);
       }
+    }
+
+    // Colisão com oponentes
+    const oppResult = checkOpponentCollisions(
+      this.player, this.spawner.getOpponents(), this.spawner.getBoss(), this.armsUpThisFrame,
+    );
+    this.armsUpThisFrame = false;
+    if (oppResult.hitOpponent && !invincible) {
+      this.lives -= 1;
+      this.hud.setLives(this.lives);
+      this.invincibleUntil = now + 2000;
+      if (C.fx.screenShake) this.cameras.main.shake(FX_SHAKE_DURATION_MS, FX_SHAKE_AMPLITUDE_PX / C.width);
+      if (C.fx.flash) {
+        const flash2 = this.add.rectangle(C.width / 2, C.height / 2, C.width, C.height, 0xffffff, 0.5).setDepth(150);
+        this.tweens.add({ targets: flash2, alpha: 0, duration: 150, onComplete: () => flash2.destroy() });
+      }
+      if (this.lives <= 0) { this.audioBus.stopMusic(); this.cleanup(); this.scene.start('GameOver', { distance: this.scoring.getDistance(), coins: this.scoring.getCoins() }); return; }
+    }
+    if (oppResult.bossDead) {
+      this.audioBus.playSfx('boss_defeat');
+      for (let i = 0; i < 10; i++) this.scoring.addCoin();
     }
 
     for (const coin of result.collectedCoins) {

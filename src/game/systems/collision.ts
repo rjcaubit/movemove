@@ -3,6 +3,54 @@ import type { Player } from '../entities/Player.ts';
 import type { Obstacle } from '../entities/Obstacle.ts';
 import type { Coin } from '../entities/Coin.ts';
 import type { HeartPickup } from '../entities/HeartPickup.ts';
+import type { Lane } from '../../pose/types.ts';
+
+export interface OpponentLike {
+  lane: Lane;
+  z: number;
+  alive: boolean;
+  kind: string;
+}
+
+export interface BossLike {
+  lane: Lane;
+  z: number;
+  alive: boolean;
+  hit(): boolean;
+}
+
+export function checkOpponentCollisions(
+  player: Player,
+  opponents: OpponentLike[],
+  boss: BossLike | null,
+  armsUpActive: boolean,
+): { hitOpponent: boolean; bossDead: boolean } {
+  const result      = { hitOpponent: false, bossDead: false };
+  const playerState = player.getState();
+  const playerLane  = player.getLane();
+
+  for (const opp of opponents) {
+    if (!opp.alive) continue;
+    if (opp.z > GAME_CONFIG.collisionZThreshold) continue;
+    if (opp.lane !== playerLane) continue;
+    // Ghost: só lane diferente evita — jump/duck não ajudam
+    if (opp.kind === 'ghost') { result.hitOpponent = true; break; }
+    // Alien: jump ou duck evitam
+    if (opp.kind === 'alien' && (playerState === 'jumping' || playerState === 'ducking')) continue;
+    result.hitOpponent = true;
+    break;
+  }
+
+  if (boss?.alive && boss.z <= GAME_CONFIG.collisionZThreshold) {
+    if (armsUpActive) {
+      result.bossDead = boss.hit();
+    } else if (boss.lane === playerLane) {
+      result.hitOpponent = true;
+    }
+  }
+
+  return result;
+}
 
 export interface CollisionResult {
   collidedObstacle?: Obstacle;
