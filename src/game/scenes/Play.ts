@@ -9,7 +9,7 @@ import { Spawner } from '../systems/spawner.ts';
 import { Scoring } from '../systems/scoring.ts';
 import { checkCollisions } from '../systems/collision.ts';
 import { HUD } from '../ui/hud.ts';
-import { getRng, mulberry32 } from '../systems/rng.ts';
+import { getRng } from '../systems/rng.ts';
 import { CameraPreview } from '../ui/cameraPreview.ts';
 import { getRefs } from '../orchestrator.ts';
 import { POSE_CONFIG } from '../../pose/config.ts';
@@ -83,7 +83,7 @@ export class Play extends Phaser.Scene {
     this.scoring = new Scoring();
     this.hud = new HUD(this);
     this.energy = new EnergySystem();
-    this.zones = new ZoneManager(this, mulberry32(43));
+    this.zones = new ZoneManager(this, getRng());
     this.shield = new ShieldEffect(this, this.player);
     this.energyBar = new EnergyBar(this);
     this.obstacles = [];
@@ -305,6 +305,14 @@ export class Play extends Phaser.Scene {
           jumps: this.cumulativeJumps, ducks: this.cumulativeDucks, bpmAvg,
           bpmTrack: this.bpmTrack.slice(-60),
         });
+        // RF20: incrementa profile aggregates
+        void refs.profileStore.load().then((p) => refs.profileStore.update({
+          totalRuns: p.totalRuns + 1,
+          totalDistance: p.totalDistance + distance,
+          totalCoins: p.totalCoins + coins,
+          totalJacks: p.totalJacks + this.cumulativeJacks,
+          totalArmsUp: p.totalArmsUp + this.cumulativeArmsUp,
+        }));
         void refs.missions.tick({
           distance, jacks: this.cumulativeJacks, coins,
           armsUp: this.cumulativeArmsUp, durationS,

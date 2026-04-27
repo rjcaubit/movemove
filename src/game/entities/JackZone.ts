@@ -4,6 +4,7 @@ import { zToY, zToScale } from '../systems/pseudo3d.ts';
 
 export class JackZone {
   readonly graphics: Phaser.GameObjects.Graphics;
+  readonly label: Phaser.GameObjects.Text;
   z: number;
   alive = true;
   count = 0;
@@ -16,6 +17,10 @@ export class JackZone {
     this.windowMs = windowMs;
     this.z = GAME_CONFIG.zMax;
     this.graphics = scene.add.graphics().setDepth(4);
+    this.label = scene.add.text(GAME_CONFIG.width / 2, GAME_CONFIG.playerY - 140, '', {
+      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '24px', color: '#ffd60a',
+      fontStyle: 'bold', stroke: '#000', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(120).setVisible(false);
   }
 
   startWindow(): void {
@@ -33,9 +38,14 @@ export class JackZone {
 
   update(speedMps: number, dtSec: number): void {
     this.z -= speedMps * dtSec * 0.07;
-    if (this.z < -0.05) { this.alive = false; this.graphics.destroy(); return; }
+    if (this.z < -0.05) { this.alive = false; this.graphics.destroy(); this.label.destroy(); return; }
     this.draw();
-    if (this.isInPlayerZone()) this.startWindow();
+    if (this.isInPlayerZone()) {
+      this.startWindow();
+      this.label.setVisible(true).setText(`POLI ${this.count}/${this.required}`);
+    } else {
+      this.label.setVisible(false);
+    }
   }
 
   private draw(): void {
@@ -49,5 +59,5 @@ export class JackZone {
     this.graphics.strokeEllipse(cx, y, w, w * 0.25);
   }
 
-  destroy(): void { if (this.alive) { this.graphics.destroy(); this.alive = false; } }
+  destroy(): void { if (this.alive) { this.graphics.destroy(); this.label.destroy(); this.alive = false; } }
 }

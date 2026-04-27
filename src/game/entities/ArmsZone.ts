@@ -4,6 +4,7 @@ import { zToY, zToScale } from '../systems/pseudo3d.ts';
 
 export class ArmsZone {
   readonly graphics: Phaser.GameObjects.Graphics;
+  readonly label: Phaser.GameObjects.Text;
   z: number;
   alive = true;
   startedAtMs: number | null = null;
@@ -14,6 +15,10 @@ export class ArmsZone {
     this.windowMs = windowMs;
     this.z = GAME_CONFIG.zMax;
     this.graphics = scene.add.graphics().setDepth(4);
+    this.label = scene.add.text(GAME_CONFIG.width / 2, GAME_CONFIG.playerY - 200, 'BRAÇOS!', {
+      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '28px', color: '#bf5af2',
+      fontStyle: 'bold', stroke: '#000', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(120).setVisible(false);
   }
 
   isInPlayerZone(): boolean { return this.z < 0.25 && this.z > -0.05; }
@@ -27,8 +32,9 @@ export class ArmsZone {
 
   update(speedMps: number, dtSec: number): void {
     this.z -= speedMps * dtSec * 0.07;
-    if (this.z < -0.05) { this.alive = false; this.graphics.destroy(); return; }
+    if (this.z < -0.05) { this.alive = false; this.graphics.destroy(); this.label.destroy(); return; }
     this.draw();
+    this.label.setVisible(this.isInPlayerZone());
   }
 
   private draw(): void {
@@ -45,5 +51,5 @@ export class ArmsZone {
     this.graphics.strokeRect(cx - w / 2, y - h / 2, w, h);
   }
 
-  destroy(): void { if (this.alive) { this.graphics.destroy(); this.alive = false; } }
+  destroy(): void { if (this.alive) { this.graphics.destroy(); this.label.destroy(); this.alive = false; } }
 }

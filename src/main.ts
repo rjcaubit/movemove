@@ -11,6 +11,8 @@ const game = startApp();
     triggerWaterBreak: () => void;
     forceCadence: (stepsPerSec: number) => void;
     skipMiniGame: (key: string) => void;
+    forceMissionState: (state: unknown) => void;
+    clearProfile: () => void;
   };
 }).__movemoveDebug = {
   forceBaseline: (b: Baseline) => {
@@ -39,6 +41,14 @@ const game = startApp();
     refs.eventDetector.dispatchEvent(new CustomEvent('event', { detail: ev }));
   },
   skipMiniGame: (key: string) => { game.scene.start(key); },
+  forceMissionState: (state: unknown) => {
+    const refs = game.registry.get('refs') as { profileStore: { update: (p: object) => Promise<unknown> } };
+    void refs.profileStore.update({ missionState: state as object });
+  },
+  clearProfile: () => {
+    const refs = game.registry.get('refs') as { profileStore: { update: (p: object) => Promise<unknown> } };
+    void refs.profileStore.update({ totalRuns: 0, totalDistance: 0, totalCoins: 0, totalJacks: 0, totalArmsUp: 0, missionState: { date: '', missions: [] } });
+  },
 };
 
 export {};
