@@ -26,7 +26,7 @@ export class Welcome extends Phaser.Scene {
       wordWrap: { width: width - 80 },
     }).setOrigin(0.5);
 
-    const cta = this.add.text(width / 2, height - 80, strings.welcome.cta, {
+    const cta = this.add.text(width / 2, height - 110, strings.welcome.cta, {
       fontFamily: 'system-ui',
       fontSize: '24px',
       color: '#0b0d10',
@@ -35,5 +35,22 @@ export class Welcome extends Phaser.Scene {
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     cta.setName('btn-start');
     cta.on('pointerup', () => this.scene.start('Loading'));
+
+    const minigamesBtn = this.add.text(width / 2, height - 50, '🎮 ' + strings.miniGames.hubTitle, {
+      fontFamily: 'system-ui',
+      fontSize: '18px',
+      color: '#0b0d10',
+      backgroundColor: '#ffd60a',
+      padding: { x: 20, y: 8 },
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    minigamesBtn.setName('btn-minigames');
+    minigamesBtn.on('pointerup', () => this.scene.start('MiniGamesHub'));
+
+    const settingsBtn = this.add.text(width - 24, 24, strings.welcome.settings, {
+      fontFamily: 'system-ui', fontSize: '14px', color: '#f5f5f5',
+      backgroundColor: 'rgba(255,255,255,0.1)', padding: { x: 12, y: 6 },
+    }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+    settingsBtn.setName('btn-settings');
+    settingsBtn.on('pointerup', () => this.scene.start('Settings', { from: 'Welcome' }));
   }
 }

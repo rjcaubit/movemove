@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "defs": [
+    { "id": "run_500m", "title": "Corrida longa", "desc": "Corra {target}m em uma só partida", "progressKey": "run.distance", "targetMin": 300, "targetMax": 800 },
+    { "id": "daily_100_jacks", "title": "Polichinelo champion", "desc": "Faça {target} polichinelos hoje", "progressKey": "daily.jacks", "targetMin": 50, "targetMax": 150 },
+    { "id": "daily_50_coins", "title": "Coletor", "desc": "Colete {target} moedas hoje", "progressKey": "daily.coins", "targetMin": 30, "targetMax": 80 },
+    { "id": "run_60s", "title": "Vai com tudo", "desc": "Sobreviva {target}s sem cair", "progressKey": "run.duration_s", "targetMin": 45, "targetMax": 120 },
+    { "id": "daily_arms_20", "title": "Defensor", "desc": "Ative escudo {target} vezes hoje", "progressKey": "daily.armsUp", "targetMin": 5, "targetMax": 15 },
+    { "id": "daily_30_bichos", "title": "Caçador", "desc": "Pegue {target} bichos hoje", "progressKey": "daily.bichosCaught", "targetMin": 20, "targetMax": 50 },
+    { "id": "daily_30_rotations", "title": "Rodopio", "desc": "Gire o tronco {target} vezes hoje", "progressKey": "daily.trunkRotations", "targetMin": 15, "targetMax": 40 }
+  ]
+}

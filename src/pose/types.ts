@@ -49,6 +49,8 @@ export type GameEvent =
   | { type: 'lane_change'; lane: Lane; source: 'pose' | 'kbd'; t: number }
   | { type: 'jumping_jack'; source: 'pose' | 'kbd'; t: number }
   | { type: 'arms_up'; source: 'pose' | 'kbd'; t: number }
-  | { type: 'cadence'; stepsPerSec: number; source: 'pose' | 'kbd'; t: number };
+  | { type: 'cadence'; stepsPerSec: number; bpm?: number; intensity?: CadenceIntensity; source: 'pose' | 'kbd'; t: number };
+
+export type CadenceIntensity = 'none' | 'walking' | 'jogging' | 'running';
 
 export type GameEventType = GameEvent['type'];

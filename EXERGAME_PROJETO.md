@@ -318,7 +318,7 @@ PWA jogável publicada com link curto. Versão 0.1. **Implementação base entre
 
 ### 6.5. Entregável
 
-Versão 0.5 — primeira versão "completa" no sentido de que cumpre o propósito original do projeto.
+Versão 0.5 — primeira versão "completa" no sentido de que cumpre o propósito original do projeto. **Implementação base entregue 2026-04-27 (Issue #4, PR pendente). Validação humana CT01 reagendada para pós-merge.**
 
 ---
 

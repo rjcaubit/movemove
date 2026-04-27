@@ -30,9 +30,33 @@ export class KeyboardDebug {
         case 'KeyR':
           this.toggleCadence();
           break;
+        case 'KeyB':
+          this.boostCadence();
+          break;
+        case 'KeyS':
+          this.emit({ type: 'arms_up', source: 'kbd', t });
+          break;
+        case 'KeyM': {
+          const dbg = (window as unknown as { __movemoveDebug?: { skipToScene: (k: string, d?: unknown) => void } }).__movemoveDebug;
+          dbg?.skipToScene('Summary', { distance: 500, coins: 12, jacks: 4, armsUp: 2, jumps: 8, ducks: 3, durationS: 90, bpmAvg: 95, bpmTrack: [60, 80, 100, 120, 110, 95, 90, 100] });
+          break;
+        }
+        case 'KeyW': {
+          const dbg = (window as unknown as { __movemoveDebug?: { triggerWaterBreak: () => void } }).__movemoveDebug;
+          dbg?.triggerWaterBreak();
+          break;
+        }
       }
     };
     window.addEventListener('keydown', this.listener);
+  }
+
+  private boostCadence(): void {
+    const start = performance.now();
+    const interval = window.setInterval(() => {
+      this.emit({ type: 'cadence', stepsPerSec: 3, bpm: 180, intensity: 'running', source: 'kbd', t: performance.now() });
+      if (performance.now() - start > 5000) clearInterval(interval);
+    }, 200);
   }
 
   private toggleCadence(): void {

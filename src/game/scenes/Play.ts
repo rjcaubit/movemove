@@ -14,6 +14,13 @@ import { CameraPreview } from '../ui/cameraPreview.ts';
 import { getRefs } from '../orchestrator.ts';
 import { POSE_CONFIG } from '../../pose/config.ts';
 import { strings } from '../../i18n/strings.ts';
+import { EnergySystem } from '../systems/energy.ts';
+import { ZoneManager } from '../systems/zones.ts';
+import { ShieldEffect } from '../systems/shield.ts';
+import { EnergyBar } from '../ui/energyBar.ts';
+import { AudioBus } from '../systems/audioBus.ts';
+import { Narrator } from '../systems/narrator.ts';
+import { narratorLines } from '../i18n/narratorLines.ts';
 import type { GameEvent, Lane, PoseFrame } from '../../pose/types.ts';
 
 const C = GAME_CONFIG;
@@ -25,9 +32,14 @@ export class Play extends Phaser.Scene {
   private spawner!: Spawner;
   private scoring!: Scoring;
   private hud!: HUD;
+  private energy!: EnergySystem;
+  private zones!: ZoneManager;
+  private shield!: ShieldEffect;
+  private energyBar!: EnergyBar;
   private obstacles: Obstacle[] = [];
   private coins: Coin[] = [];
   private speedMps: number = C.speedInitial;
+  private speedBase: number = C.speedInitial;
   private elapsedMs = 0;
   private muted = false;
   private cameraPreview: CameraPreview | null = null;
@@ -41,6 +53,20 @@ export class Play extends Phaser.Scene {
   private isPaused = false;
   private prepCountdownMs = 3000;
   private prepText: Phaser.GameObjects.Text | null = null;
+  private currentBpm = 0;
+  private static cumulativePlayMs = 0;
+  private static lastWaterBreakAt = 0;
+  // Tracking pra Summary/RunHistory (preenchidos durante o run; usados na Fase C)
+  private cumulativeJumps = 0;
+  private cumulativeDucks = 0;
+  private cumulativeJacks = 0;
+  private cumulativeArmsUp = 0;
+  private audioBus!: AudioBus;
+  private narrator!: Narrator;
+  private bpmTrack: number[] = [];
+  private bpmSampleAccum = 0;
+  private startedAtMs = 0;
+  private energyLowSince: number | null = null;
 
   constructor() { super('Play'); }
 
@@ -56,13 +82,34 @@ export class Play extends Phaser.Scene {
     this.spawner = new Spawner(getRng());
     this.scoring = new Scoring();
     this.hud = new HUD(this);
+    this.energy = new EnergySystem();
+    this.zones = new ZoneManager(this, getRng());
+    this.shield = new ShieldEffect(this, this.player);
+    this.energyBar = new EnergyBar(this);
     this.obstacles = [];
     this.coins = [];
-    this.speedMps = C.speedInitial;
+    {
+      const ageGroup = (() => { try { return localStorage.getItem('movemove.ageGroup') ?? '8-10'; } catch { return '8-10'; } })();
+      this.speedBase = ageGroup === '5-7' ? 4 : ageGroup === '11-12' ? 6 : C.speedInitial;
+    }
+    this.speedMps = this.speedBase;
     this.elapsedMs = 0;
     this.lastFrameAt = performance.now();
     this.lowConfSince = null;
     this.driftSuggestedAt = null;
+    this.currentBpm = 0;
+    this.cumulativeJumps = 0;
+    this.cumulativeDucks = 0;
+    this.cumulativeJacks = 0;
+    this.cumulativeArmsUp = 0;
+    this.bpmTrack = [];
+    this.bpmSampleAccum = 0;
+    this.startedAtMs = performance.now();
+    this.energyLowSince = null;
+    this.audioBus = new AudioBus(this);
+    this.audioBus.startMusic();
+    const narratorEnabled = (() => { try { return localStorage.getItem('movemove.narrator.enabled') !== 'false'; } catch { return true; } })();
+    this.narrator = new Narrator(this.audioBus, narratorEnabled);
     if (this.prepCountdownMs > 0) {
       this.prepText = this.add.text(C.width / 2, C.height / 2 - 40, '3', {
         fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '120px', color: '#4cd964',
@@ -93,20 +140,41 @@ export class Play extends Phaser.Scene {
     this.eventListener = (e: Event) => {
       const ev = (e as CustomEvent<GameEvent>).detail;
       switch (ev.type) {
-        case 'jump': this.player.jump(); break;
-        case 'duck': this.player.duck(); break;
+        case 'jump': this.player.jump(); this.cumulativeJumps += 1; break;
+        case 'duck': this.player.duck(); this.cumulativeDucks += 1; break;
         case 'lane_change': this.player.setLane(ev.lane); break;
-        // arms_up/cadence/jumping_jack ignorados pelo gameplay nesta fase
+        case 'cadence':
+          if (ev.intensity) this.energy.setIntensity(ev.intensity);
+          if (typeof ev.bpm === 'number') this.currentBpm = ev.bpm;
+          break;
+        case 'jumping_jack': {
+          this.cumulativeJacks += 1;
+          const z = this.zones.activeJackZone();
+          if (z) {
+            const completed = z.tickJack();
+            if (completed) {
+              for (let i = 0; i < 5; i++) this.scoring.addCoin();
+            }
+          }
+          if (this.cumulativeJacks === 1) this.narrator.speak(narratorLines.firstJack(), 2);
+          else if (this.cumulativeJacks % 5 === 0) this.narrator.speak(narratorLines.comboJack(this.cumulativeJacks), 1);
+          break;
+        }
+        case 'arms_up': {
+          this.cumulativeArmsUp += 1;
+          const z = this.zones.activeArmsZone();
+          if (z) z.registerArmsUp(50);
+          break;
+        }
       }
     };
     refs.eventDetector.addEventListener('event', this.eventListener);
 
     this.unsubFrame = refs.onSmoothedFrame((frame: PoseFrame) => this.handleFrame(frame));
 
-    // Fallback keyboard sempre ativo (KeyboardDebug global só roda com ?debug=1)
     if (this.input.keyboard) {
-      this.input.keyboard.on('keydown-SPACE', () => this.player.jump());
-      this.input.keyboard.on('keydown-DOWN', () => this.player.duck());
+      this.input.keyboard.on('keydown-SPACE', () => { this.player.jump(); this.cumulativeJumps += 1; });
+      this.input.keyboard.on('keydown-DOWN', () => { this.player.duck(); this.cumulativeDucks += 1; });
       this.input.keyboard.on('keydown-LEFT', () => this.player.setLane(this.shiftLane(-1)));
       this.input.keyboard.on('keydown-RIGHT', () => this.player.setLane(this.shiftLane(1)));
     }
@@ -147,7 +215,6 @@ export class Play extends Phaser.Scene {
     if (noBody && !this.isPaused) {
       this.showNoBody();
       this.isPaused = true;
-      // Pausa tweens/timers/sons (RF12). update() ainda roda pra detectar volta dos keypoints.
       this.tweens.pauseAll();
       this.time.paused = true;
       this.sound.pauseAll();
@@ -161,7 +228,6 @@ export class Play extends Phaser.Scene {
 
     const dt = deltaMs / 1000;
 
-    // "Get ready" countdown — congela spawner/scoring/colisão; cenário ainda anda devagar
     if (this.prepCountdownMs > 0) {
       this.prepCountdownMs -= deltaMs;
       const remaining = Math.ceil(this.prepCountdownMs / 1000);
@@ -175,7 +241,6 @@ export class Play extends Phaser.Scene {
           });
         }
       }
-      // ainda atualiza o cenário em câmera lenta pra dar contexto visual
       this.parallax.update(this.speedMps * 0.3, dt);
       this.road.update(this.speedMps * 0.3, dt);
       this.player.update(dt);
@@ -183,9 +248,29 @@ export class Play extends Phaser.Scene {
     }
 
     this.elapsedMs += deltaMs;
+    Play.cumulativePlayMs += deltaMs;
+    const ageGroup = (() => { try { return localStorage.getItem('movemove.ageGroup') ?? '8-10'; } catch { return '8-10'; } })();
+    const waterBreakInterval = ageGroup === '5-7' ? 6 * 60 * 1000 : ageGroup === '11-12' ? 10 * 60 * 1000 : 8 * 60 * 1000;
+    if (Play.cumulativePlayMs - Play.lastWaterBreakAt > waterBreakInterval) {
+      Play.lastWaterBreakAt = Play.cumulativePlayMs;
+      this.scene.pause().launch('WaterBreak');
+      return;
+    }
 
+    // Energy + zones + shield
+    this.energy.tick(dt);
+    this.zones.tickDistance(this.speedMps * dt);
+    this.zones.update(this.speedMps, dt);
+    this.shield.update();
+    for (const z of this.zones.arms) {
+      if (z.isCompleted() && !this.shield.hasCharge()) this.shield.activate();
+    }
+
+    // Velocidade base aumenta com tempo; energia multiplica
     const steps = Math.floor(this.elapsedMs / C.speedIncreaseIntervalMs);
-    this.speedMps = Math.min(C.speedMax, C.speedInitial + steps * C.speedIncreasePerInterval);
+    const ageInitial = (() => { try { const a = localStorage.getItem('movemove.ageGroup') ?? '8-10'; return a === '5-7' ? 4 : a === '11-12' ? 6 : C.speedInitial; } catch { return C.speedInitial; } })();
+    this.speedBase = Math.min(C.speedMax, ageInitial + steps * C.speedIncreasePerInterval);
+    this.speedMps = this.speedBase * this.energy.getSpeedFactor();
 
     this.parallax.update(this.speedMps, dt);
     this.road.update(this.speedMps, dt);
@@ -200,15 +285,48 @@ export class Play extends Phaser.Scene {
 
     const result = checkCollisions(this.player, this.obstacles, this.coins);
     if (result.collidedObstacle) {
-      this.tweens.killAll();
-      this.sound.stopAll();
-      if (this.cache.audio.exists('snd_hit')) this.sound.play('snd_hit');
-      if (this.cache.audio.exists('snd_gameover')) this.sound.play('snd_gameover');
-      const distance = this.scoring.getDistance();
-      const coins = this.scoring.getCoins();
-      this.cleanup();
-      this.scene.start('GameOver', { distance, coins });
-      return;
+      if (this.shield.consume()) {
+        result.collidedObstacle.destroy();
+      } else {
+        this.narrator.speak(narratorLines.gameOver(), 2);
+        this.audioBus.stopMusic();
+        this.tweens.killAll();
+        this.sound.stopAll();
+        if (this.cache.audio.exists('snd_hit')) this.sound.play('snd_hit');
+        if (this.cache.audio.exists('snd_gameover')) this.sound.play('snd_gameover');
+        const distance = this.scoring.getDistance();
+        const coins = this.scoring.getCoins();
+        const durationS = (performance.now() - this.startedAtMs) / 1000;
+        const bpmAvg = this.bpmTrack.length ? this.bpmTrack.reduce((a, b) => a + b, 0) / this.bpmTrack.length : 0;
+        const refs = getRefs(this);
+        void refs.runHistory.push({
+          id: `${Date.now()}`, startedAt: this.startedAtMs, durationS,
+          distance, coins, jacks: this.cumulativeJacks, armsUp: this.cumulativeArmsUp,
+          jumps: this.cumulativeJumps, ducks: this.cumulativeDucks, bpmAvg,
+          bpmTrack: this.bpmTrack.slice(-60),
+        });
+        // RF20: incrementa profile aggregates
+        void refs.profileStore.load().then((p) => refs.profileStore.update({
+          totalRuns: p.totalRuns + 1,
+          totalDistance: p.totalDistance + distance,
+          totalCoins: p.totalCoins + coins,
+          totalJacks: p.totalJacks + this.cumulativeJacks,
+          totalArmsUp: p.totalArmsUp + this.cumulativeArmsUp,
+        }));
+        void refs.missions.tick({
+          distance, jacks: this.cumulativeJacks, coins,
+          armsUp: this.cumulativeArmsUp, durationS,
+        }).then((completed) => {
+          if (completed.length > 0) this.narrator.speak(narratorLines.missionComplete(), 2);
+        });
+        this.cleanup();
+        const target = this.scene.manager.keys['Summary'] ? 'Summary' : 'GameOver';
+        const data = target === 'Summary'
+          ? { distance, coins, jacks: this.cumulativeJacks, armsUp: this.cumulativeArmsUp, jumps: this.cumulativeJumps, ducks: this.cumulativeDucks, durationS, bpmAvg, bpmTrack: this.bpmTrack.slice(-60) }
+          : { distance, coins };
+        this.scene.start(target, data);
+        return;
+      }
     }
     for (const coin of result.collectedCoins) {
       coin.collect();
@@ -220,6 +338,26 @@ export class Play extends Phaser.Scene {
     this.hud.setDistance(this.scoring.getDistance());
     this.hud.setCoins(this.scoring.getCoins());
     this.hud.setFps(this.game.loop.actualFps);
+    this.energyBar.update(this.energy.getValue(), this.energy.getIntensity(), this.currentBpm);
+
+    // BPM track sample (1Hz)
+    this.bpmSampleAccum += deltaMs;
+    if (this.bpmSampleAccum >= 1000) {
+      this.bpmSampleAccum = 0;
+      this.bpmTrack.push(this.currentBpm);
+      if (this.bpmTrack.length > 600) this.bpmTrack.shift();
+    }
+
+    // Narrator: energia baixa por 3s
+    if (this.energy.getValue() < 20) {
+      if (this.energyLowSince === null) this.energyLowSince = performance.now();
+      else if (performance.now() - this.energyLowSince > 3000) {
+        this.narrator.speak(narratorLines.energyLow(), 1);
+        this.energyLowSince = performance.now() + 5000; // não repete por 8s
+      }
+    } else {
+      this.energyLowSince = null;
+    }
   }
 
   private showNoBody(): void {
@@ -272,6 +410,8 @@ export class Play extends Phaser.Scene {
       this.eventListener = null;
     }
     if (this.cameraPreview) { this.cameraPreview.destroy(); this.cameraPreview = null; }
+    if (this.zones) this.zones.destroy();
+    if (this.shield) this.shield.reset();
     this.hideBanner();
     this.hideNoBody();
   }

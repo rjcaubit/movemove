@@ -1,9 +1,9 @@
 {
-  "name": "movemove-fase1",
+  "name": "movemove-fase2",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.5.0",
   "type": "module",
-  "description": "Movemove — Fase 1: endless runner mínimo (Phaser 4 + pose detection)",
+  "description": "Movemove — Fase 2: camada de exercício saudável (cadência, polichinelos, missões, narrador)",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -12,9 +12,12 @@
     "copy:wasm": "mkdir -p public/wasm && cp -f node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.wasm node_modules/@mediapipe/tasks-vision/wasm/vision_wasm_internal.js public/wasm/",
     "download:model": "mkdir -p public/models && curl -fsSL -o public/models/pose_landmarker_lite.task https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
     "setup": "npm run download:model && npm run copy:wasm",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "i18n:extract": "lingui extract",
+    "i18n:compile": "lingui compile"
   },
   "devDependencies": {
+    "@lingui/cli": "^4.14.1",
     "@playwright/test": "^1.59.1",
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0",
@@ -22,7 +25,9 @@
     "vite-plugin-mkcert": "^2.0.0"
   },
   "dependencies": {
+    "@lingui/core": "^4.14.1",
     "@mediapipe/tasks-vision": "^0.10.20",
+    "idb-keyval": "^6.2.2",
     "phaser": "^4.0.0"
   }
 }

@@ -23,6 +23,8 @@ export class EventDetector extends EventTarget {
   private lastJackAt = 0;
   // arms_up
   private armsUpEmittedAt = 0;
+  // cadence decay tracking
+  private lastCadenceEmitT = 0;
 
   setBaseline(b: Baseline): void { this.baseline = b; }
   getBaseline(): Baseline | null { return this.baseline; }
@@ -36,6 +38,7 @@ export class EventDetector extends EventTarget {
     this.kneeUpHistory = [];
     this.lastJackAt = 0;
     this.armsUpEmittedAt = 0;
+    this.lastCadenceEmitT = 0;
   }
 
   ingest(frame: PoseFrame): void {
@@ -143,7 +146,19 @@ export class EventDetector extends EventTarget {
     // Emite apenas quando há novo passo registrado, evitando spam por frame.
     if (newStep) {
       const stepsPerSec = (this.kneeUpHistory.length * 1000) / POSE_CONFIG.cadenceWindowMs;
-      this.emit({ type: 'cadence', stepsPerSec, source: 'pose', t });
+      const bpm = stepsPerSec * 60;
+      const intensity =
+        stepsPerSec < 0.5 ? 'none'
+        : stepsPerSec < 1.5 ? 'walking'
+        : stepsPerSec < 3 ? 'jogging'
+        : 'running';
+      this.lastCadenceEmitT = t;
+      this.emit({ type: 'cadence', stepsPerSec, bpm, intensity, source: 'pose', t });
+    }
+    // Emit "decay" cadence quando histórico esvazia (silêncio prolongado)
+    if (!newStep && this.kneeUpHistory.length === 0 && t - this.lastCadenceEmitT > 1000) {
+      this.lastCadenceEmitT = t;
+      this.emit({ type: 'cadence', stepsPerSec: 0, bpm: 0, intensity: 'none', source: 'pose', t });
     }
   }
 
