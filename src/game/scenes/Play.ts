@@ -22,9 +22,10 @@ import { EnergyBar } from '../ui/energyBar.ts';
 import { AudioBus } from '../systems/audioBus.ts';
 import { Narrator } from '../systems/narrator.ts';
 import { PostFxOverlay } from '../ui/postfx.ts';
+import { BillboardLayer } from '../systems/billboard.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
 import type { GameEvent, Lane, PoseFrame } from '../../pose/types.ts';
-import { AGE_GROUPS, getAgeGroup } from '../../tuning.ts';
+import { AGE_GROUPS, getAgeGroup, FX_SHAKE_AMPLITUDE_PX, FX_SHAKE_DURATION_MS } from '../../tuning.ts';
 
 const C = GAME_CONFIG;
 
@@ -70,6 +71,7 @@ export class Play extends Phaser.Scene {
   private audioBus!: AudioBus;
   private narrator!: Narrator;
   private postFx!: PostFxOverlay;
+  private billboard!: BillboardLayer;
   private bpmTrack: number[] = [];
   private bpmSampleAccum = 0;
   private startedAtMs = 0;
@@ -83,8 +85,9 @@ export class Play extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(0x87ceeb);
-    this.parallax = new Parallax(this);
-    this.road = new Road(this);
+    this.parallax  = new Parallax(this);
+    this.road      = new Road(this);
+    this.billboard = new BillboardLayer(this);
     this.player = new Player(this);
     this.spawner = new Spawner(getRng());
     this.scoring = new Scoring();
@@ -346,8 +349,16 @@ export class Play extends Phaser.Scene {
           return;
         }
 
-        // Perdeu vida mas ainda tem vidas: 2s de invencibilidade + flash
+        // Perdeu vida mas ainda tem vidas: 2s de invencibilidade + shake + flash
         this.invincibleUntil = now + 2000;
+        if (C.fx.screenShake) {
+          this.cameras.main.shake(FX_SHAKE_DURATION_MS, FX_SHAKE_AMPLITUDE_PX / C.width);
+        }
+        if (C.fx.flash) {
+          const flash = this.add.rectangle(C.width / 2, C.height / 2, C.width, C.height, 0xffffff, 0.5)
+            .setDepth(150);
+          this.tweens.add({ targets: flash, alpha: 0, duration: 150, onComplete: () => flash.destroy() });
+        }
         this.tweens.add({
           targets: this.player.sprite,
           alpha: { from: 0.2, to: 1 },
@@ -458,5 +469,5 @@ export class Play extends Phaser.Scene {
     this.hideNoBody();
   }
 
-  shutdown(): void { this.cleanup(); this.postFx?.destroy(); }
+  shutdown(): void { this.cleanup(); this.postFx?.destroy(); this.billboard?.destroy(); }
 }

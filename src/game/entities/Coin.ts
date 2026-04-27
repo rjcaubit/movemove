@@ -11,8 +11,10 @@ export class Coin {
   constructor(scene: Phaser.Scene, lane: Lane, zStart: number) {
     this.lane = lane;
     this.z = zStart;
-    this.sprite = scene.add.sprite(laneToX(lane, this.z), zToY(this.z), 'coin')
-      .setOrigin(0.5, 1).setScale(zToScale(this.z) * 0.7).setDepth(5).setTint(0xffd60a);
+    const texKey = scene.textures.exists('coin_kenney') ? 'coin_kenney' : 'coin';
+    this.sprite = scene.add.sprite(laneToX(lane, this.z), zToY(this.z), texKey)
+      .setOrigin(0.5, 1).setScale(zToScale(this.z) * 0.7).setDepth(5);
+    if (!scene.textures.exists('coin_kenney')) this.sprite.setTint(0xffd60a);
 
     scene.tweens.add({
       targets: this.sprite,

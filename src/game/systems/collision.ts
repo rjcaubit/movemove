@@ -2,10 +2,12 @@ import { GAME_CONFIG } from '../config.ts';
 import type { Player } from '../entities/Player.ts';
 import type { Obstacle } from '../entities/Obstacle.ts';
 import type { Coin } from '../entities/Coin.ts';
+import type { HeartPickup } from '../entities/HeartPickup.ts';
 
 export interface CollisionResult {
   collidedObstacle?: Obstacle;
   collectedCoins: Coin[];
+  collectedHeart?: HeartPickup;
 }
 
 /**
@@ -17,7 +19,12 @@ export interface CollisionResult {
  * da checagem de evasão. Para `wall_lane` isso é justamente o comportamento desejado: se está na
  * mesma lane → colide; se está em lane diferente → nem entra no loop.
  */
-export function checkCollisions(player: Player, obstacles: Obstacle[], coins: Coin[]): CollisionResult {
+export function checkCollisions(
+  player: Player,
+  obstacles: Obstacle[],
+  coins: Coin[],
+  hearts: HeartPickup[] = [],
+): CollisionResult {
   const result: CollisionResult = { collectedCoins: [] };
 
   for (const obs of obstacles) {
@@ -26,8 +33,12 @@ export function checkCollisions(player: Player, obstacles: Obstacle[], coins: Co
     if (obs.lane !== player.getLane()) continue;
     const playerState = player.getState();
     let evading = false;
-    if (obs.kind === 'barrier' && playerState === 'jumping') evading = true;
+    if (obs.kind === 'barrier'     && playerState === 'jumping') evading = true;
     if (obs.kind === 'low_barrier' && playerState === 'ducking') evading = true;
+    if (obs.kind === 'jump_brick'  && playerState === 'jumping') evading = true;
+    if (obs.kind === 'jump_column' && playerState === 'jumping') evading = true;
+    if (obs.kind === 'duck_log'    && playerState === 'ducking') evading = true;
+    if (obs.kind === 'duck_banner' && playerState === 'ducking') evading = true;
     // wall_lane: nenhuma evasão por estado — só lane diferente evita (filtrado acima)
     if (!evading) {
       result.collidedObstacle = obs;
@@ -40,6 +51,14 @@ export function checkCollisions(player: Player, obstacles: Obstacle[], coins: Co
     if (coin.z > GAME_CONFIG.coinPickupZThreshold) continue;
     if (coin.lane !== player.getLane()) continue;
     result.collectedCoins.push(coin);
+  }
+
+  for (const heart of hearts) {
+    if (!heart.alive) continue;
+    if (heart.z > GAME_CONFIG.coinPickupZThreshold) continue;
+    if (heart.lane !== player.getLane()) continue;
+    result.collectedHeart = heart;
+    break;
   }
 
   return result;

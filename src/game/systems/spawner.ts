@@ -2,24 +2,34 @@ import * as Phaser from 'phaser';
 import { GAME_CONFIG } from '../config.ts';
 import { Obstacle, type ObstacleKind } from '../entities/Obstacle.ts';
 import { Coin } from '../entities/Coin.ts';
+import { HeartPickup } from '../entities/HeartPickup.ts';
 import type { Lane } from '../../pose/types.ts';
 
 const C = GAME_CONFIG;
-const ALL_KINDS: ObstacleKind[] = ['barrier', 'low_barrier', 'wall_lane'];
+const ALL_KINDS: ObstacleKind[] = [
+  'barrier', 'low_barrier', 'wall_lane',
+  'jump_brick', 'jump_column',
+  'duck_log', 'duck_banner',
+];
 const ALL_LANES: Lane[] = [-1, 0, 1];
+const HEART_EVERY_METERS = 600;
 
 export class Spawner {
   private elapsedMs = 0;
   private nextSpawnAtMs = 0;
   private metersAccum = 0;
   private nextCoinClusterAt = C.coinClusterEveryMeters;
+  private nextHeartAt = HEART_EVERY_METERS;
   private rng: () => number;
 
   constructor(rng: () => number) {
     this.rng = rng;
   }
 
-  update(scene: Phaser.Scene, dtSec: number, speedMps: number, obstacles: Obstacle[], coins: Coin[]): void {
+  update(
+    scene: Phaser.Scene, dtSec: number, speedMps: number,
+    obstacles: Obstacle[], coins: Coin[], hearts: HeartPickup[], lives: number,
+  ): void {
     this.elapsedMs += dtSec * 1000;
     this.metersAccum += speedMps * dtSec;
 
@@ -45,6 +55,12 @@ export class Spawner {
         coins.push(new Coin(scene, lane, 0.95 - i * 0.03));
       }
     }
+
+    if (lives < 3 && this.metersAccum >= this.nextHeartAt) {
+      this.nextHeartAt += HEART_EVERY_METERS;
+      const lane = ALL_LANES[Math.floor(this.rng() * ALL_LANES.length)];
+      hearts.push(new HeartPickup(scene, lane, 0.95));
+    }
   }
 
   reset(): void {
@@ -52,5 +68,6 @@ export class Spawner {
     this.nextSpawnAtMs = 0;
     this.metersAccum = 0;
     this.nextCoinClusterAt = C.coinClusterEveryMeters;
+    this.nextHeartAt = HEART_EVERY_METERS;
   }
 }
