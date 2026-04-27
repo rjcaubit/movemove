@@ -6,8 +6,9 @@ export default defineConfig({
   fullyParallel: false,
   reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'https://localhost:5173',
     headless: true,
+    ignoreHTTPSErrors: true,
     launchOptions: {
       args: [
         '--use-fake-ui-for-media-stream',
@@ -17,8 +18,9 @@ export default defineConfig({
   },
   webServer: {
     command: 'npm run dev',
-    port: 5173,
+    url: 'https://localhost:5173',
     reuseExistingServer: true,
     timeout: 60_000,
+    ignoreHTTPSErrors: true,
   },
 });

@@ -271,7 +271,7 @@ Um link compartilhável (Cloudflare Pages) que abre no celular e executa o prot�
 
 ### 5.6. Entregável
 
-PWA jogável publicada com link curto. Versão 0.1.
+PWA jogável publicada com link curto. Versão 0.1. **Implementação base entregue 2026-04-26 (Issue #3, PR pendente). Validação humana CT01 reagendada para pós-merge.**
 
 ---
 
