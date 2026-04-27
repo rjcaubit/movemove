@@ -38,6 +38,8 @@ export const GAME_CONFIG = {
 
   /** Colisão */
   collisionZThreshold: 0.15,
+  /** Coleta de moeda (RF09 — mais permissivo que collisão de obstáculo) */
+  coinPickupZThreshold: 0.10,
 
   /** Persistência */
   storageKeys: {

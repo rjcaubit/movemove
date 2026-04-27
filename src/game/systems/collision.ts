@@ -8,7 +8,15 @@ export interface CollisionResult {
   collectedCoins: Coin[];
 }
 
-/** Player evita: jump→barrier, duck→low_barrier, lane diff→wall_lane. */
+/**
+ * Player evita:
+ *  - barrier → pulando
+ *  - low_barrier → agachando
+ *  - wall_lane → estando em lane diferente (única evasão; pular/agachar NÃO evade — parede ocupa toda a altura).
+ * O filtro `obs.lane !== player.getLane()` exclui obstáculos que não estão na lane do player ANTES
+ * da checagem de evasão. Para `wall_lane` isso é justamente o comportamento desejado: se está na
+ * mesma lane → colide; se está em lane diferente → nem entra no loop.
+ */
 export function checkCollisions(player: Player, obstacles: Obstacle[], coins: Coin[]): CollisionResult {
   const result: CollisionResult = { collectedCoins: [] };
 
@@ -20,6 +28,7 @@ export function checkCollisions(player: Player, obstacles: Obstacle[], coins: Co
     let evading = false;
     if (obs.kind === 'barrier' && playerState === 'jumping') evading = true;
     if (obs.kind === 'low_barrier' && playerState === 'ducking') evading = true;
+    // wall_lane: nenhuma evasão por estado — só lane diferente evita (filtrado acima)
     if (!evading) {
       result.collidedObstacle = obs;
       return result;
@@ -28,7 +37,7 @@ export function checkCollisions(player: Player, obstacles: Obstacle[], coins: Co
 
   for (const coin of coins) {
     if (!coin.alive) continue;
-    if (coin.z > GAME_CONFIG.collisionZThreshold) continue;
+    if (coin.z > GAME_CONFIG.coinPickupZThreshold) continue;
     if (coin.lane !== player.getLane()) continue;
     result.collectedCoins.push(coin);
   }

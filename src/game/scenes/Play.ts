@@ -129,11 +129,19 @@ export class Play extends Phaser.Scene {
   }
 
   update(_time: number, deltaMs: number): void {
-    if (performance.now() - this.lastFrameAt > POSE_CONFIG.noBodyTimeoutMs) {
+    const noBody = performance.now() - this.lastFrameAt > POSE_CONFIG.noBodyTimeoutMs;
+    if (noBody && !this.isPaused) {
       this.showNoBody();
       this.isPaused = true;
-    } else if (this.isPaused) {
+      // Pausa tweens/timers/sons (RF12). update() ainda roda pra detectar volta dos keypoints.
+      this.tweens.pauseAll();
+      this.time.paused = true;
+      this.sound.pauseAll();
+    } else if (!noBody && this.isPaused) {
       this.isPaused = false;
+      this.tweens.resumeAll();
+      this.time.paused = false;
+      this.sound.resumeAll();
     }
     if (this.isPaused) return;
 

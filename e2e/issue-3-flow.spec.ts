@@ -92,6 +92,50 @@ test.describe('Issue #3 — endless runner', () => {
     await page.screenshot({ path: join(SHOTS, 'ct04-debug-play.png') });
   });
 
+  test('CT02 — câmera negada → errorScreen HTML aparece', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'mediaDevices', {
+        configurable: true,
+        get: () => ({ getUserMedia: () => Promise.reject(new DOMException('denied', 'NotAllowedError')) }),
+      });
+      try { localStorage.setItem('movemove.tutorialDone', 'true'); } catch { /* ignore */ }
+    });
+    await page.goto('/?debug=1');
+    await page.waitForSelector('#game canvas', { timeout: 10_000 });
+    // Avança pra Loading via debug helper (simula clique no Welcome CTA)
+    await page.evaluate(() => {
+      const w = window as unknown as { __movemoveDebug: { skipToScene: (k: string) => void } };
+      w.__movemoveDebug.skipToScene('Loading');
+    });
+    const errorScreen = page.locator('#screen-error');
+    await expect(errorScreen).toBeVisible({ timeout: 10_000 });
+    await expect(errorScreen).toContainText(/permitir a câmera/i);
+    await page.screenshot({ path: join(SHOTS, 'ct02-camera-denied.png') });
+  });
+
+  test('CT06 — tutorial roda só na 1ª vez (flag localStorage)', async ({ page }) => {
+    // 1ª visita: limpar localStorage manualmente após o load (sem addInitScript pra não re-disparar no reload)
+    await page.goto('/?debug=1');
+    await page.waitForSelector('#game canvas', { timeout: 10_000 });
+    await page.evaluate(() => { try { localStorage.clear(); } catch { /* ignore */ } });
+    let done = await page.evaluate(() => localStorage.getItem('movemove.tutorialDone'));
+    expect(done).toBeNull();
+
+    // Simula tutorial completo
+    await page.evaluate(() => {
+      try { localStorage.setItem('movemove.tutorialDone', 'true'); } catch { /* ignore */ }
+    });
+    done = await page.evaluate(() => localStorage.getItem('movemove.tutorialDone'));
+    expect(done).toBe('true');
+    await page.screenshot({ path: join(SHOTS, 'ct06-tutorial-flag.png') });
+
+    // 2ª visita: flag persiste após reload
+    await page.reload();
+    await page.waitForSelector('#game canvas', { timeout: 10_000 });
+    const stillDone = await page.evaluate(() => localStorage.getItem('movemove.tutorialDone'));
+    expect(stillDone).toBe('true');
+  });
+
   test('CT08 — recorde local persiste em localStorage', async ({ page }) => {
     await page.addInitScript(() => {
       try {
