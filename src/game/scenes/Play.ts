@@ -54,6 +54,8 @@ export class Play extends Phaser.Scene {
   private prepCountdownMs = 3000;
   private prepText: Phaser.GameObjects.Text | null = null;
   private currentBpm = 0;
+  private static cumulativePlayMs = 0;
+  private static lastWaterBreakAt = 0;
   // Tracking pra Summary/RunHistory (preenchidos durante o run; usados na Fase C)
   private cumulativeJumps = 0;
   private cumulativeDucks = 0;
@@ -86,7 +88,10 @@ export class Play extends Phaser.Scene {
     this.energyBar = new EnergyBar(this);
     this.obstacles = [];
     this.coins = [];
-    this.speedBase = C.speedInitial;
+    {
+      const ageGroup = (() => { try { return localStorage.getItem('movemove.ageGroup') ?? '8-10'; } catch { return '8-10'; } })();
+      this.speedBase = ageGroup === '5-7' ? 4 : ageGroup === '11-12' ? 6 : C.speedInitial;
+    }
     this.speedMps = this.speedBase;
     this.elapsedMs = 0;
     this.lastFrameAt = performance.now();
@@ -243,6 +248,14 @@ export class Play extends Phaser.Scene {
     }
 
     this.elapsedMs += deltaMs;
+    Play.cumulativePlayMs += deltaMs;
+    const ageGroup = (() => { try { return localStorage.getItem('movemove.ageGroup') ?? '8-10'; } catch { return '8-10'; } })();
+    const waterBreakInterval = ageGroup === '5-7' ? 6 * 60 * 1000 : ageGroup === '11-12' ? 10 * 60 * 1000 : 8 * 60 * 1000;
+    if (Play.cumulativePlayMs - Play.lastWaterBreakAt > waterBreakInterval) {
+      Play.lastWaterBreakAt = Play.cumulativePlayMs;
+      this.scene.pause().launch('WaterBreak');
+      return;
+    }
 
     // Energy + zones + shield
     this.energy.tick(dt);
@@ -255,7 +268,8 @@ export class Play extends Phaser.Scene {
 
     // Velocidade base aumenta com tempo; energia multiplica
     const steps = Math.floor(this.elapsedMs / C.speedIncreaseIntervalMs);
-    this.speedBase = Math.min(C.speedMax, C.speedInitial + steps * C.speedIncreasePerInterval);
+    const ageInitial = (() => { try { const a = localStorage.getItem('movemove.ageGroup') ?? '8-10'; return a === '5-7' ? 4 : a === '11-12' ? 6 : C.speedInitial; } catch { return C.speedInitial; } })();
+    this.speedBase = Math.min(C.speedMax, ageInitial + steps * C.speedIncreasePerInterval);
     this.speedMps = this.speedBase * this.energy.getSpeedFactor();
 
     this.parallax.update(this.speedMps, dt);
