@@ -282,11 +282,12 @@ export class Play extends Phaser.Scene {
       if (z.isCompleted() && !this.shield.hasCharge()) this.shield.activate();
     }
 
-    // Velocidade base aumenta com tempo; energia multiplica
+    // Velocidade base aumenta com tempo (auto-walk: não depende de energia)
     const steps = Math.floor(this.elapsedMs / C.speedIncreaseIntervalMs);
     const ageInitial = AGE_GROUPS[getAgeGroup()].speedInitial;
     this.speedBase = Math.min(C.speedMax, ageInitial + steps * C.speedIncreasePerInterval);
-    this.speedMps = this.speedBase * this.energy.getSpeedFactor();
+    this.speedMps  = this.speedBase;
+    this.energy.setIntensity('running'); // mantém barra e FX no máximo
 
     this.parallax.update(this.speedMps, dt);
     this.road.update(this.speedMps, dt);
