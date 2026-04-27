@@ -3,16 +3,19 @@
 **Issue:** #2
 **Branch:** `feature/sdd-issue-2`
 **Data:** 2026-04-26
-**Status:** Código pronto para merge — validação manual humana (CT01) pendente
+**Status:** Encerrada — CT01 e RNF01–03 deferidos pra Fase 1 (validação humana só faz sentido com gameplay real)
 
 ---
 
 ## Cenários de teste (do `02-spec.md`)
 
-### CT01 — Fluxo principal manual humano *(pendente)*
+### CT01 — Fluxo principal manual humano *(deferido pra Fase 1)*
 
 Validação manual com filho do dev no celular alvo. **Não automatizável.**
 
+Decisão de encerramento (2026-04-26): medir FPS/acerto/latência/falsos positivos *sem gameplay real* gera ruído subjetivo demais. CT01 e RNF01–03 viram critério de aceite da Fase 1, junto com o loop de jogo, onde "errar um pulo" tem consequência observável.
+
+Critérios reagendados pra Fase 1:
 - [ ] FPS médio ≥ 30 (medir no painel debug)
 - [ ] Acerto subjetivo > 85% pra jump/duck/lane (em 20 tentativas, ≤ 3 perdas)
 - [ ] Latência percebida < 150ms (julgamento subjetivo)
@@ -21,8 +24,6 @@ Validação manual com filho do dev no celular alvo. **Não automatizável.**
 📍 Devices a testar: iPhone SE 2020, Galaxy A54, MacBook Air M1.
 📍 Iluminações: dia, noite com luz acesa, contraluz, pouca luz.
 📍 Roupas: colada, larga, com casaco/chapéu.
-
-Resultados a registrar em `load-tests/results/issue-2-journey/README.md` com screenshots em `screenshots/`.
 
 ### CT02 — Câmera negada → Error screen ✅
 
@@ -96,9 +97,9 @@ Cobertura via Playwright: `e2e/issue-2.spec.ts:10-67`.
 
 | RNF | Status | Notas |
 |-----|--------|-------|
-| RNF01 — FPS≥30 | ⏳ | Pendente CT01 manual no celular real |
-| RNF02 — Latência<150ms | ⏳ | Pendente CT01 manual |
-| RNF03 — Boot<8s | ⏳ | Pendente CT01 |
+| RNF01 — FPS≥30 | ⏳→Fase 1 | Mensuração só faz sentido com gameplay real |
+| RNF02 — Latência<150ms | ⏳→Fase 1 | Idem RNF01 |
+| RNF03 — Boot<8s | ⏳→Fase 1 | Idem RNF01 |
 | **RNF04 — Bundle<5MB** | ❌ | **Achado:** modelo lite real é 5.5MB (não 3MB), WASM SIMD 11MB. Bundle final 18MB (~9MB gzipped). Budget irreal com MediaPipe lite. Atualizar na Fase 1. |
 | RNF05 — Privacidade | ✅ | `getUserMedia` em resposta a clique (welcomeScreen). Modelo + WASM same-origin. |
 | RNF06 — Sem PWA standalone | ✅ | `index.html` sem `<link rel="manifest">` nem service worker. |
@@ -144,8 +145,13 @@ Cobertura via Playwright: `e2e/issue-2.spec.ts:10-67`.
 
 ---
 
-## Próximos passos
+## Encerramento
 
-1. **Validação manual humana (CT01)** — dev abre `https://movemove.pages.dev/?debug=1` no celular do filho, mede FPS / acerto / latência, preenche `load-tests/results/issue-2-journey/README.md`. Quando crítérios da Seção 4.4 forem atingidos, fechar a issue.
-2. **Follow-up cosmetic (P2):** refactor `duckPhase` state machine, extrair `headTopOffsetFracHCorpo` dedicado, mover `RELEVANT_KP_INDICES` pro config, trocar `innerHTML` do log do debugPanel por DOM. Pode virar issue separada sem urgência.
-3. **Fase 1 (#3):** após validação humana confirmar que detector funciona no celular alvo, prosseguir com `/sdd-plan 3`.
+Issue #2 fechada em 2026-04-26. Detector de pose, calibração, 6 heurísticas, debug panel, estados degradados, deploy Cloudflare Pages e HTTPS local via mkcert estão em `main`. Pips de evento já com labels PT-BR (POLI / PULAR / AGACHAR / ESQ / DIR / BRAÇOS).
+
+**Pendências reagendadas:**
+- **CT01 + RNF01–03** → Fase 1 (validação humana com loop de jogo real)
+- **RNF04 (bundle <5MB)** → reescopo na Fase 1 (modelo lite real é 5.5MB; budget irreal)
+- **Cosmetic P2:** refactor `duckPhase` state machine, extrair `headTopOffsetFracHCorpo`, mover `RELEVANT_KP_INDICES` pro config, trocar `innerHTML` do log por DOM. Vira issue separada sem urgência.
+
+**Próximo:** `/sdd-plan 3` pra abrir Fase 1.
