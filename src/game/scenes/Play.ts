@@ -39,8 +39,14 @@ export class Play extends Phaser.Scene {
   private unsubFrame: (() => void) | null = null;
   private eventListener: ((e: Event) => void) | null = null;
   private isPaused = false;
+  private prepCountdownMs = 3000;
+  private prepText: Phaser.GameObjects.Text | null = null;
 
   constructor() { super('Play'); }
+
+  init(data: { skipPrep?: boolean }): void {
+    this.prepCountdownMs = data?.skipPrep ? 0 : 3000;
+  }
 
   create(): void {
     this.cameras.main.setBackgroundColor(0x87ceeb);
@@ -57,6 +63,14 @@ export class Play extends Phaser.Scene {
     this.lastFrameAt = performance.now();
     this.lowConfSince = null;
     this.driftSuggestedAt = null;
+    if (this.prepCountdownMs > 0) {
+      this.prepText = this.add.text(C.width / 2, C.height / 2 - 40, '3', {
+        fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '120px', color: '#4cd964',
+        fontStyle: 'bold', stroke: '#000', strokeThickness: 8,
+      }).setOrigin(0.5).setDepth(150);
+    } else {
+      this.prepText = null;
+    }
 
     this.muted = (() => { try { return localStorage.getItem(C.storageKeys.muted) === 'true'; } catch { return false; } })();
     this.sound.mute = this.muted;
@@ -146,6 +160,28 @@ export class Play extends Phaser.Scene {
     if (this.isPaused) return;
 
     const dt = deltaMs / 1000;
+
+    // "Get ready" countdown — congela spawner/scoring/colisão; cenário ainda anda devagar
+    if (this.prepCountdownMs > 0) {
+      this.prepCountdownMs -= deltaMs;
+      const remaining = Math.ceil(this.prepCountdownMs / 1000);
+      if (this.prepText) {
+        if (this.prepCountdownMs > 0) this.prepText.setText(remaining > 0 ? String(remaining) : 'GO');
+        if (this.prepCountdownMs <= 0) {
+          this.prepText.setText('GO');
+          this.tweens.add({
+            targets: this.prepText, alpha: 0, scale: 1.5, duration: 400,
+            onComplete: () => { this.prepText?.destroy(); this.prepText = null; },
+          });
+        }
+      }
+      // ainda atualiza o cenário em câmera lenta pra dar contexto visual
+      this.parallax.update(this.speedMps * 0.3, dt);
+      this.road.update(this.speedMps * 0.3, dt);
+      this.player.update(dt);
+      return;
+    }
+
     this.elapsedMs += deltaMs;
 
     const steps = Math.floor(this.elapsedMs / C.speedIncreaseIntervalMs);

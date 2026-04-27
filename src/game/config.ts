@@ -6,8 +6,8 @@ export const GAME_CONFIG = {
 
   /** Mundo / pseudo-3D */
   horizonY: 220,
-  laneXOffsetAtNear: 200,
-  laneXOffsetAtHorizon: 30,
+  laneXOffsetAtNear: 280,
+  laneXOffsetAtHorizon: 40,
   zMin: 0,
   zMax: 1,
   zStep: 0.2,
@@ -30,9 +30,9 @@ export const GAME_CONFIG = {
 
   /** Player (px lógicos no canvas) */
   playerY: 440,
-  playerJumpHeightPx: 80,
-  playerJumpDurationMs: 600,
-  playerDuckDurationMs: 800,
+  playerJumpHeightPx: 110,
+  playerJumpDurationMs: 1000,
+  playerDuckDurationMs: 1200,
   playerLaneTiltDurationMs: 200,
   playerLaneTiltDeg: 15,
 

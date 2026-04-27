@@ -25,8 +25,8 @@ export const POSE_CONFIG = {
   duckSustainMs: 200,
 
   /** Heurística LANE CHANGE */
-  laneThresholdFracOmbros: 0.20,
-  laneHysteresisFrac: 0.05,
+  laneThresholdFracOmbros: 0.35,
+  laneHysteresisFrac: 0.12,
 
   /** Heurística RUNNING CADENCE */
   cadenceKneeRaiseFracHCorpo: 0.08,

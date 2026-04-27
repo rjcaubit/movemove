@@ -25,8 +25,8 @@ export class Road {
     g.clear();
 
     const cx = C.width / 2;
-    const horizonHalfWidth = C.laneXOffsetAtHorizon * 1.5;
-    const nearHalfWidth = C.laneXOffsetAtNear * 1.5;
+    const horizonHalfWidth = C.laneXOffsetAtHorizon * 1.7;
+    const nearHalfWidth = C.laneXOffsetAtNear * 1.7;
     g.fillStyle(0x2c2f36, 1);
     g.beginPath();
     g.moveTo(cx - horizonHalfWidth, C.horizonY);

@@ -7,6 +7,7 @@ import { Tutorial } from './scenes/Tutorial.ts';
 import { Calibration } from './scenes/Calibration.ts';
 import { Play } from './scenes/Play.ts';
 import { GameOver } from './scenes/GameOver.ts';
+import { Demo } from './scenes/Demo.ts';
 
 import { PoseDetector } from '../pose/poseDetector.ts';
 import { EmaSmoother } from '../pose/smoother.ts';
@@ -86,7 +87,7 @@ export function startApp(): Phaser.Game {
       width: GAME_CONFIG.width,
       height: GAME_CONFIG.height,
     },
-    scene: [Boot, Welcome, Loading, Tutorial, Calibration, Play, GameOver],
+    scene: [Boot, Welcome, Loading, Tutorial, Calibration, Play, GameOver, Demo],
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } },
     render: { pixelArt: true, antialias: false },
   });

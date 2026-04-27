@@ -1,14 +1,15 @@
 import * as Phaser from 'phaser';
 import { GAME_CONFIG } from '../config.ts';
 import { strings } from '../../i18n/strings.ts';
-import { POSE_CONFIG } from '../../pose/config.ts';
 import { getRefs } from '../orchestrator.ts';
 
+type Phase = 'capturing' | 'getReady';
+
 export class Calibration extends Phaser.Scene {
-  private countdownEl!: Phaser.GameObjects.Text;
+  private bigEl!: Phaser.GameObjects.Text;
   private statusEl!: Phaser.GameObjects.Text;
-  private countdownStartAt = 0;
-  private countdownDone = false;
+  private phase: Phase = 'capturing';
+  private getReadyStartedAt = 0;
   private unsubFrame: (() => void) | null = null;
 
   constructor() { super('Calibration'); }
@@ -22,11 +23,11 @@ export class Calibration extends Phaser.Scene {
       align: 'center', wordWrap: { width: width - 80 },
     }).setOrigin(0.5);
 
-    this.countdownEl = this.add.text(width / 2, height / 2, '3', {
+    this.bigEl = this.add.text(width / 2, height / 2, '...', {
       fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '120px', color: '#4cd964', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    this.statusEl = this.add.text(width / 2, height - 60, '', {
+    this.statusEl = this.add.text(width / 2, height - 60, strings.calibration.capturing, {
       fontFamily: 'system-ui', fontSize: '16px', color: '#ffd60a',
     }).setOrigin(0.5);
 
@@ -35,39 +36,43 @@ export class Calibration extends Phaser.Scene {
     refs.eventDetector.reset();
     refs.smoother.reset();
 
-    this.countdownStartAt = this.time.now;
-    this.countdownDone = false;
+    this.phase = 'capturing';
+    refs.calibrator.start();
 
     this.unsubFrame = refs.onSmoothedFrame((frame) => {
-      if (!this.countdownDone) return;
+      if (this.phase !== 'capturing') return;
       const outcome = refs.calibrator.feed(frame);
       if (outcome) {
         if (outcome.ok) {
           refs.eventDetector.setBaseline(outcome.baseline);
+          this.phase = 'getReady';
+          this.getReadyStartedAt = this.time.now;
           this.statusEl.setText(strings.calibration.ok);
-          this.countdownEl.setText('OK');
-          this.time.delayedCall(600, () => this.scene.start('Play'));
         } else {
           this.statusEl.setText(strings.calibration.retry);
-          this.countdownDone = false;
-          this.countdownStartAt = this.time.now;
+          refs.calibrator.start();
         }
       }
     });
   }
 
   update(): void {
-    if (this.countdownDone) return;
-    const elapsed = this.time.now - this.countdownStartAt;
-    const remaining = POSE_CONFIG.calibrationCountdownSec - Math.floor(elapsed / 1000);
+    if (this.phase === 'capturing') {
+      // Pulse "..." pra dar feedback de "capturando"
+      const dot = Math.floor((this.time.now / 400) % 4);
+      this.bigEl.setText('.'.repeat(dot + 1));
+      return;
+    }
+    // getReady: 3-2-1-GO
+    const elapsed = this.time.now - this.getReadyStartedAt;
+    const remaining = 3 - Math.floor(elapsed / 1000);
     if (remaining > 0) {
-      this.countdownEl.setText(strings.calibration.countdown(remaining));
-    } else {
-      this.countdownEl.setText('GO');
-      this.countdownDone = true;
-      this.statusEl.setText(strings.calibration.capturing);
-      const refs = getRefs(this);
-      refs.calibrator.start();
+      this.bigEl.setText(String(remaining));
+    } else if (remaining === 0) {
+      this.bigEl.setText('GO');
+    }
+    if (elapsed > 3500) {
+      this.scene.start('Play', { skipPrep: true });
     }
   }
 

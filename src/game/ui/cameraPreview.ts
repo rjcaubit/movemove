@@ -27,7 +27,12 @@ export class CameraPreview {
   private tick = (): void => {
     const ctx = this.canvas.getContext('2d');
     if (ctx && this.video.videoWidth > 0) {
+      // Espelha o vídeo pra alinhar com o flip de x feito em poseDetector.toFrame.
+      ctx.save();
+      ctx.translate(this.canvas.width, 0);
+      ctx.scale(-1, 1);
       ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+      ctx.restore();
       if (this.lastFrame) this.overlay.draw(this.lastFrame.keypoints, this.lastFrame.confidence);
     }
     this.rafId = requestAnimationFrame(this.tick);
