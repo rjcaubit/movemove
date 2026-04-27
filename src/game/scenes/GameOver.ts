@@ -20,42 +20,42 @@ export class GameOver extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x1a0d10);
 
     this.add.text(width / 2, 80, strings.gameOver.title, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '56px', color: '#ff453a', fontStyle: 'bold',
+      fontFamily: 'VT323, ui-monospace', fontSize: '56px', color: '#ff453a', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     this.add.text(width / 2, 200, strings.gameOver.distance, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '18px', color: '#8a8d92',
+      fontFamily: 'VT323, ui-monospace', fontSize: '18px', color: '#8a8d92',
     }).setOrigin(0.5);
     this.add.text(width / 2, 240, `${distance} ${strings.play.distance}`, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '40px', color: '#f5f5f5', fontStyle: 'bold',
+      fontFamily: 'VT323, ui-monospace', fontSize: '40px', color: '#f5f5f5', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     this.add.text(width / 2, 300, strings.gameOver.coins, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '18px', color: '#8a8d92',
+      fontFamily: 'VT323, ui-monospace', fontSize: '18px', color: '#8a8d92',
     }).setOrigin(0.5);
     this.add.text(width / 2, 330, String(coins), {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '32px', color: '#ffd60a', fontStyle: 'bold',
+      fontFamily: 'VT323, ui-monospace', fontSize: '32px', color: '#ffd60a', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     if (isNewRecord) {
       this.add.text(width / 2, 380, strings.gameOver.newRecord, {
-        fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '24px', color: '#4cd964', fontStyle: 'bold',
+        fontFamily: 'VT323, ui-monospace', fontSize: '24px', color: '#4cd964', fontStyle: 'bold',
       }).setOrigin(0.5);
     } else {
       this.add.text(width / 2, 380, `${strings.gameOver.best}: ${best} ${strings.play.distance}`, {
-        fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '18px', color: '#8a8d92',
+        fontFamily: 'VT323, ui-monospace', fontSize: '18px', color: '#8a8d92',
       }).setOrigin(0.5);
     }
 
     const btn1 = this.add.text(width / 2 - 110, height - 70, strings.gameOver.playAgain, {
-      fontFamily: 'system-ui', fontSize: '20px', color: '#0b0d10',
+      fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#0b0d10',
       backgroundColor: '#4cd964', padding: { x: 18, y: 10 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     btn1.setName('btn-play-again');
     btn1.on('pointerup', () => this.scene.start('Play'));
 
     const btn2 = this.add.text(width / 2 + 110, height - 70, strings.gameOver.recalibrate, {
-      fontFamily: 'system-ui', fontSize: '20px', color: '#f5f5f5',
+      fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#f5f5f5',
       backgroundColor: '#8a8d92', padding: { x: 18, y: 10 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     btn2.setName('btn-recalibrate');

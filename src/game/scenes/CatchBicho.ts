@@ -47,13 +47,13 @@ export class CatchBicho extends Phaser.Scene {
     this.rng = getRng();
 
     this.add.text(width / 2, 30, strings.miniGames.catchTitle, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '24px', color: '#4cd964', fontStyle: 'bold',
+      fontFamily: 'VT323, ui-monospace', fontSize: '24px', color: '#4cd964', fontStyle: 'bold',
     }).setOrigin(0.5);
     this.scoreEl = this.add.text(20, 20, `${strings.miniGames.score}: 0`, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '20px', color: '#f5f5f5', stroke: '#000', strokeThickness: 3,
+      fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#f5f5f5', stroke: '#000', strokeThickness: 3,
     });
     this.timeEl = this.add.text(width - 20, 20, '60s', {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '20px', color: '#ffd60a', stroke: '#000', strokeThickness: 3,
+      fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#ffd60a', stroke: '#000', strokeThickness: 3,
     }).setOrigin(1, 0);
 
     const refs = getRefs(this);

@@ -87,7 +87,7 @@ export class Play extends Phaser.Scene {
   }
 
   create(): void {
-    this.cameras.main.setBackgroundColor(0x87ceeb);
+    this.cameras.main.setBackgroundColor(GAME_CONFIG.bgColor);
     this.parallax  = new Parallax(this);
     this.road      = new Road(this);
     this.billboard = new BillboardLayer(this);
@@ -128,7 +128,7 @@ export class Play extends Phaser.Scene {
     this.narrator = new Narrator(this.audioBus, narratorEnabled);
     if (this.prepCountdownMs > 0) {
       this.prepText = this.add.text(C.width / 2, C.height / 2 - 40, '3', {
-        fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '120px', color: '#4cd964',
+        fontFamily: 'VT323, ui-monospace', fontSize: '120px', color: '#4cd964',
         fontStyle: 'bold', stroke: '#000', strokeThickness: 8,
       }).setOrigin(0.5).setDepth(150);
     } else {
@@ -138,7 +138,7 @@ export class Play extends Phaser.Scene {
     this.muted = (() => { try { return localStorage.getItem(C.storageKeys.muted) === 'true'; } catch { return false; } })();
     this.sound.mute = this.muted;
     const muteBtn = this.add.text(C.width - 20, C.height - 20, this.muted ? '🔇' : '🔊', {
-      fontFamily: 'system-ui', fontSize: '24px', color: '#f5f5f5',
+      fontFamily: 'VT323, ui-monospace', fontSize: '24px', color: '#f5f5f5',
       backgroundColor: 'rgba(0,0,0,0.5)', padding: { x: 8, y: 4 },
     }).setOrigin(1, 1).setDepth(100).setInteractive({ useHandCursor: true });
     muteBtn.setName('btn-mute');
@@ -479,7 +479,7 @@ export class Play extends Phaser.Scene {
     if (this.noBodyOverlay) return;
     const bg = this.add.rectangle(C.width / 2, C.height / 2, C.width, C.height, 0x0b0d10, 0.7);
     const text = this.add.text(C.width / 2, C.height / 2, strings.states.noBody, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '36px', color: '#f5f5f5', fontStyle: 'bold',
+      fontFamily: 'VT323, ui-monospace', fontSize: '36px', color: '#f5f5f5', fontStyle: 'bold',
     }).setOrigin(0.5);
     this.noBodyOverlay = this.add.container(0, 0, [bg, text]).setDepth(200);
   }

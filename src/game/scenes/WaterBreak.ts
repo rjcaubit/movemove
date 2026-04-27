@@ -17,15 +17,15 @@ export class WaterBreak extends Phaser.Scene {
 
     this.add.text(width / 2, 100, '💧', { fontSize: '120px' }).setOrigin(0.5);
     this.add.text(width / 2, 240, strings.play.waterBreak, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '36px', color: '#4cd964', fontStyle: 'bold',
+      fontFamily: 'VT323, ui-monospace', fontSize: '36px', color: '#4cd964', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     this.countdownEl = this.add.text(width / 2, 320, '30', {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '72px', color: '#0a84ff', fontStyle: 'bold',
+      fontFamily: 'VT323, ui-monospace', fontSize: '72px', color: '#0a84ff', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     this.dismissEl = this.add.text(width / 2, height - 80, strings.play.waterDismiss, {
-      fontFamily: 'system-ui', fontSize: '20px', color: '#0b0d10',
+      fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#0b0d10',
       backgroundColor: '#8a8d92', padding: { x: 24, y: 10 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     this.dismissEl.setName('btn-dismiss');

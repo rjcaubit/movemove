@@ -20,7 +20,7 @@ export class Summary extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x111418);
 
     this.add.text(width / 2, 40, strings.summary.title, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '36px', color: '#4cd964', fontStyle: 'bold',
+      fontFamily: 'VT323, ui-monospace', fontSize: '36px', color: '#4cd964', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     const grid = [
@@ -35,13 +35,13 @@ export class Summary extends Phaser.Scene {
     grid.forEach(([k, v], i) => {
       const x = (i % 4) * 220 + 80;
       const y = 110 + Math.floor(i / 4) * 60;
-      this.add.text(x, y, k, { fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '13px', color: '#8a8d92' }).setOrigin(0);
-      this.add.text(x, y + 18, v, { fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '22px', color: '#f5f5f5', fontStyle: 'bold' }).setOrigin(0);
+      this.add.text(x, y, k, { fontFamily: 'VT323, ui-monospace', fontSize: '13px', color: '#8a8d92' }).setOrigin(0);
+      this.add.text(x, y + 18, v, { fontFamily: 'VT323, ui-monospace', fontSize: '22px', color: '#f5f5f5', fontStyle: 'bold' }).setOrigin(0);
     });
 
     const ov = document.createElement('div');
     ov.style.cssText = 'position:absolute;left:50%;bottom:200px;transform:translateX(-50%);background:rgba(0,0,0,0.5);padding:8px;border-radius:8px;z-index:150;';
-    ov.innerHTML = `<div style="color:#8a8d92;font:12px ui-monospace;margin-bottom:4px;">${strings.summary.bpmTrack}</div>${sparklineSvg(data.bpmTrack, 360, 60, '#ffd60a')}`;
+    ov.innerHTML = `<div style="color:#8a8d92;font:14px VT323, ui-monospace;margin-bottom:4px;">${strings.summary.bpmTrack}</div>${sparklineSvg(data.bpmTrack, 360, 60, '#ffd60a')}`;
     document.body.appendChild(ov);
     this.htmlOverlay = ov;
 
@@ -49,23 +49,23 @@ export class Summary extends Phaser.Scene {
     const missions = await refs.missions.getActive();
     const yMission = height - 200;
     this.add.text(width / 2, yMission, strings.summary.missions, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '14px', color: '#8a8d92',
+      fontFamily: 'VT323, ui-monospace', fontSize: '14px', color: '#8a8d92',
     }).setOrigin(0.5);
     missions.forEach((m, i) => {
       const x = (i + 0.5) * (width / 3);
       const status = m.inst.completed ? '✅' : `${Math.floor(m.inst.progress)}/${m.inst.target}`;
       this.add.text(x, yMission + 30, m.def.title, {
-        fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '14px', color: '#f5f5f5', align: 'center',
+        fontFamily: 'VT323, ui-monospace', fontSize: '14px', color: '#f5f5f5', align: 'center',
       }).setOrigin(0.5);
       this.add.text(x, yMission + 50, status, {
-        fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '16px',
+        fontFamily: 'VT323, ui-monospace', fontSize: '16px',
         color: m.inst.completed ? '#4cd964' : '#ffd60a', fontStyle: 'bold', align: 'center',
       }).setOrigin(0.5);
     });
 
     const btn = (x: number, label: string, onClick: () => void): void => {
       const t = this.add.text(x, height - 50, label, {
-        fontFamily: 'system-ui', fontSize: '20px', color: '#0b0d10',
+        fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#0b0d10',
         backgroundColor: '#4cd964', padding: { x: 18, y: 10 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       t.on('pointerup', () => { this.cleanup(); onClick(); });

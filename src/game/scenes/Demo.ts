@@ -28,7 +28,7 @@ export class Demo extends Phaser.Scene {
   constructor() { super('Demo'); }
 
   create(): void {
-    this.cameras.main.setBackgroundColor(0x87ceeb);
+    this.cameras.main.setBackgroundColor(GAME_CONFIG.bgColor);
     this.parallax = new Parallax(this);
     this.road = new Road(this);
     this.player = new Player(this);
@@ -37,7 +37,7 @@ export class Demo extends Phaser.Scene {
     this.coins = [];
 
     this.add.text(GAME_CONFIG.width / 2, 24, 'DEMO — sem câmera (↑/↓ velocidade · ←/→ lane)', {
-      fontFamily: 'system-ui', fontSize: '13px', color: '#f5f5f5',
+      fontFamily: 'VT323, ui-monospace', fontSize: '13px', color: '#f5f5f5',
       backgroundColor: 'rgba(0,0,0,0.5)', padding: { x: 10, y: 4 },
     }).setOrigin(0.5, 0).setDepth(100);
 
@@ -68,7 +68,7 @@ export class Demo extends Phaser.Scene {
     this.obstacles = this.obstacles.filter((o) => o.alive);
     this.coins = this.coins.filter((c) => c.alive);
 
-    this.spawner.update(this, dt, this.speedMps, this.obstacles, this.coins);
+    this.spawner.update(this, dt, this.speedMps, this.obstacles, this.coins, [], 3);
     // Sem checkCollisions — obstáculos passam pelo jogador.
   }
 }

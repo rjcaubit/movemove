@@ -12,14 +12,14 @@ export class Welcome extends Phaser.Scene {
     this.add.image(width / 2, height / 2 - 100, 'mascot').setScale(4);
 
     this.add.text(width / 2, height / 2 + 0, 'MOVEMOVE', {
-      fontFamily: 'ui-monospace, Menlo, monospace',
+      fontFamily: 'VT323, ui-monospace',
       fontSize: '40px',
       color: '#4cd964',
       fontStyle: 'bold',
     }).setOrigin(0.5);
 
     this.add.text(width / 2, height / 2 + 60, strings.welcome.headline, {
-      fontFamily: 'system-ui',
+      fontFamily: 'VT323, ui-monospace',
       fontSize: '18px',
       color: '#8a8d92',
       align: 'center',
@@ -27,7 +27,7 @@ export class Welcome extends Phaser.Scene {
     }).setOrigin(0.5);
 
     const cta = this.add.text(width / 2, height - 110, strings.welcome.cta, {
-      fontFamily: 'system-ui',
+      fontFamily: 'VT323, ui-monospace',
       fontSize: '24px',
       color: '#0b0d10',
       backgroundColor: '#4cd964',
@@ -37,7 +37,7 @@ export class Welcome extends Phaser.Scene {
     cta.on('pointerup', () => this.scene.start('Loading'));
 
     const minigamesBtn = this.add.text(width / 2, height - 50, '🎮 ' + strings.miniGames.hubTitle, {
-      fontFamily: 'system-ui',
+      fontFamily: 'VT323, ui-monospace',
       fontSize: '18px',
       color: '#0b0d10',
       backgroundColor: '#ffd60a',
@@ -47,7 +47,7 @@ export class Welcome extends Phaser.Scene {
     minigamesBtn.on('pointerup', () => this.scene.start('Loading', { next: 'MiniGamesHub' }));
 
     const settingsBtn = this.add.text(width - 24, 24, strings.welcome.settings, {
-      fontFamily: 'system-ui', fontSize: '14px', color: '#f5f5f5',
+      fontFamily: 'VT323, ui-monospace', fontSize: '14px', color: '#f5f5f5',
       backgroundColor: 'rgba(255,255,255,0.1)', padding: { x: 12, y: 6 },
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
     settingsBtn.setName('btn-settings');

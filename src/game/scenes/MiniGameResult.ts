@@ -18,20 +18,20 @@ export class MiniGameResult extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x111418);
 
     this.add.text(width / 2, 60, strings.miniGames.result, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '32px', color: '#4cd964', fontStyle: 'bold',
+      fontFamily: 'VT323, ui-monospace', fontSize: '32px', color: '#4cd964', fontStyle: 'bold',
     }).setOrigin(0.5);
     this.add.text(width / 2, 130, data.scoreLabel, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '16px', color: '#8a8d92',
+      fontFamily: 'VT323, ui-monospace', fontSize: '16px', color: '#8a8d92',
     }).setOrigin(0.5);
     this.add.text(width / 2, 170, String(data.score), {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '64px', color: '#f5f5f5', fontStyle: 'bold',
+      fontFamily: 'VT323, ui-monospace', fontSize: '64px', color: '#f5f5f5', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     let y = 260;
     if (data.extra) {
       for (const [k, v] of Object.entries(data.extra)) {
         this.add.text(width / 2, y, `${k}: ${v}`, {
-          fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '18px', color: '#ffd60a',
+          fontFamily: 'VT323, ui-monospace', fontSize: '18px', color: '#ffd60a',
         }).setOrigin(0.5);
         y += 30;
       }
@@ -43,7 +43,7 @@ export class MiniGameResult extends Phaser.Scene {
 
     if (next) {
       this.add.text(width / 2, height - 130, `${strings.miniGames.next}: ${next}`, {
-        fontFamily: 'system-ui', fontSize: '16px', color: '#8a8d92',
+        fontFamily: 'VT323, ui-monospace', fontSize: '16px', color: '#8a8d92',
       }).setOrigin(0.5);
       this.time.delayedCall(3000, () => this.scene.start(next, { session }));
       return;
@@ -51,7 +51,7 @@ export class MiniGameResult extends Phaser.Scene {
 
     const btn = (x: number, label: string, onClick: () => void): void => {
       const t = this.add.text(x, height - 60, label, {
-        fontFamily: 'system-ui', fontSize: '18px', color: '#0b0d10',
+        fontFamily: 'VT323, ui-monospace', fontSize: '18px', color: '#0b0d10',
         backgroundColor: '#4cd964', padding: { x: 18, y: 8 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       t.on('pointerup', onClick);

@@ -19,16 +19,16 @@ export class Calibration extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x000000);
 
     this.add.text(width / 2, 60, strings.calibration.instruction, {
-      fontFamily: 'system-ui', fontSize: '20px', color: '#f5f5f5',
+      fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#f5f5f5',
       align: 'center', wordWrap: { width: width - 80 },
     }).setOrigin(0.5);
 
     this.bigEl = this.add.text(width / 2, height / 2, '...', {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '120px', color: '#4cd964', fontStyle: 'bold',
+      fontFamily: 'VT323, ui-monospace', fontSize: '120px', color: '#4cd964', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     this.statusEl = this.add.text(width / 2, height - 60, strings.calibration.capturing, {
-      fontFamily: 'system-ui', fontSize: '16px', color: '#ffd60a',
+      fontFamily: 'VT323, ui-monospace', fontSize: '16px', color: '#ffd60a',
     }).setOrigin(0.5);
 
     const refs = getRefs(this);

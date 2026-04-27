@@ -19,11 +19,11 @@ export class EnergyBar {
     scene.add.rectangle(x, y, this.maxWidth, 16, 0x0b0d10, 0.6).setOrigin(0, 0).setDepth(100);
     this.fill = scene.add.rectangle(x, y, this.maxWidth, 16, 0x4cd964, 1).setOrigin(0, 0).setDepth(101);
     scene.add.text(x, y - 18, 'ENERGIA', {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '12px', color: '#f5f5f5',
+      fontFamily: 'VT323, ui-monospace', fontSize: '12px', color: '#f5f5f5',
       stroke: '#000', strokeThickness: 3,
     }).setDepth(101);
     this.bpmEl = scene.add.text(x + this.maxWidth + 8, y, '0 BPM', {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '14px', color: '#ffd60a',
+      fontFamily: 'VT323, ui-monospace', fontSize: '14px', color: '#ffd60a',
       stroke: '#000', strokeThickness: 3,
     }).setDepth(101);
   }

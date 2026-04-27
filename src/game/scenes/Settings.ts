@@ -18,10 +18,10 @@ export class Settings extends Phaser.Scene {
 
   create(data: SettingsData): void {
     const { width, height } = GAME_CONFIG;
-    this.cameras.main.setBackgroundColor(0x0b0d10);
+    this.cameras.main.setBackgroundColor(GAME_CONFIG.bgColor);
 
     this.add.text(width / 2, 60, strings.settings.title, {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '32px', color: '#4cd964', fontStyle: 'bold',
+      fontFamily: 'VT323, ui-monospace', fontSize: '32px', color: '#4cd964', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     let y = 130;
@@ -35,7 +35,7 @@ export class Settings extends Phaser.Scene {
     this.makeAgeRadio(width / 2, y);
 
     const back = this.add.text(width / 2, height - 60, strings.settings.back, {
-      fontFamily: 'system-ui', fontSize: '20px', color: '#0b0d10',
+      fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#0b0d10',
       backgroundColor: '#4cd964', padding: { x: 24, y: 10 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     back.setName('btn-back');
@@ -44,14 +44,14 @@ export class Settings extends Phaser.Scene {
 
   private makeSlider(x: number, y: number, label: string, key: string, defaultVal: number): void {
     const cur = (() => { try { const v = localStorage.getItem(key); return v == null ? defaultVal : Number(v); } catch { return defaultVal; } })();
-    this.add.text(x - 200, y, label, { fontFamily: 'system-ui', fontSize: '16px', color: '#f5f5f5' }).setOrigin(0, 0.5);
-    const valueEl = this.add.text(x + 200, y, String(cur), { fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '14px', color: '#ffd60a' }).setOrigin(1, 0.5);
+    this.add.text(x - 200, y, label, { fontFamily: 'VT323, ui-monospace', fontSize: '16px', color: '#f5f5f5' }).setOrigin(0, 0.5);
+    const valueEl = this.add.text(x + 200, y, String(cur), { fontFamily: 'VT323, ui-monospace', fontSize: '14px', color: '#ffd60a' }).setOrigin(1, 0.5);
     const minus = this.add.text(x + 80, y, '−', {
-      fontFamily: 'system-ui', fontSize: '24px', color: '#0b0d10',
+      fontFamily: 'VT323, ui-monospace', fontSize: '24px', color: '#0b0d10',
       backgroundColor: '#4cd964', padding: { x: 10, y: 2 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     const plus = this.add.text(x + 140, y, '+', {
-      fontFamily: 'system-ui', fontSize: '24px', color: '#0b0d10',
+      fontFamily: 'VT323, ui-monospace', fontSize: '24px', color: '#0b0d10',
       backgroundColor: '#4cd964', padding: { x: 10, y: 2 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     let val = cur;
@@ -66,10 +66,10 @@ export class Settings extends Phaser.Scene {
 
   private makeToggle(x: number, y: number, label: string, key: string, defaultVal: boolean): void {
     const cur = (() => { try { const v = localStorage.getItem(key); return v == null ? defaultVal : v === 'true'; } catch { return defaultVal; } })();
-    this.add.text(x - 200, y, label, { fontFamily: 'system-ui', fontSize: '16px', color: '#f5f5f5' }).setOrigin(0, 0.5);
+    this.add.text(x - 200, y, label, { fontFamily: 'VT323, ui-monospace', fontSize: '16px', color: '#f5f5f5' }).setOrigin(0, 0.5);
     let val = cur;
     const btn = this.add.text(x + 100, y, val ? 'ON' : 'OFF', {
-      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '14px', color: '#0b0d10',
+      fontFamily: 'VT323, ui-monospace', fontSize: '14px', color: '#0b0d10',
       backgroundColor: val ? '#4cd964' : '#8a8d92', padding: { x: 16, y: 6 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     btn.on('pointerup', () => {
@@ -81,7 +81,7 @@ export class Settings extends Phaser.Scene {
 
   private makeAgeRadio(x: number, y: number): void {
     const cur = (() => { try { return localStorage.getItem(KEYS.age) ?? '8-10'; } catch { return '8-10'; } })();
-    this.add.text(x - 200, y, strings.settings.age, { fontFamily: 'system-ui', fontSize: '16px', color: '#f5f5f5' }).setOrigin(0, 0.5);
+    this.add.text(x - 200, y, strings.settings.age, { fontFamily: 'VT323, ui-monospace', fontSize: '16px', color: '#f5f5f5' }).setOrigin(0, 0.5);
     const opts = [
       { v: '5-7', label: strings.settings.age_5_7 },
       { v: '8-10', label: strings.settings.age_8_10 },
@@ -92,7 +92,7 @@ export class Settings extends Phaser.Scene {
       const bx = x + 50 + i * 100;
       const isCur = cur === o.v;
       const b = this.add.text(bx, y, o.label, {
-        fontFamily: 'system-ui', fontSize: '12px', color: isCur ? '#0b0d10' : '#f5f5f5',
+        fontFamily: 'VT323, ui-monospace', fontSize: '12px', color: isCur ? '#0b0d10' : '#f5f5f5',
         backgroundColor: isCur ? '#4cd964' : '#8a8d92', padding: { x: 8, y: 4 },
       }).setOrigin(0.5).setInteractive({ useHandCursor: true });
       buttons.push(b);

@@ -20,10 +20,10 @@ export class Loading extends Phaser.Scene {
   create(): void {
     const { width, height } = GAME_CONFIG;
     this.add.text(width / 2, height / 2 - 30, strings.loading.text, {
-      fontFamily: 'system-ui', fontSize: '24px', color: '#f5f5f5',
+      fontFamily: 'VT323, ui-monospace', fontSize: '24px', color: '#f5f5f5',
     }).setOrigin(0.5);
     this.statusText = this.add.text(width / 2, height / 2 + 20, '', {
-      fontFamily: 'system-ui', fontSize: '14px', color: '#8a8d92',
+      fontFamily: 'VT323, ui-monospace', fontSize: '14px', color: '#8a8d92',
     }).setOrigin(0.5);
 
     void this.bootDetector();
