@@ -3,6 +3,7 @@ import { GAME_CONFIG } from '../config.ts';
 import { strings } from '../../i18n/strings.ts';
 import { Bicho, type BichoColor } from '../entities/Bicho.ts';
 import { handAt } from '../../pose/spatialQueries.ts';
+import { getRng } from '../systems/rng.ts';
 import { getRefs } from '../orchestrator.ts';
 import { Narrator } from '../systems/narrator.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
@@ -28,6 +29,7 @@ export class CatchBicho extends Phaser.Scene {
   private unsubFrame: (() => void) | null = null;
   private narrator!: Narrator;
   private session: string[] = [];
+  private rng: () => number = Math.random;
 
   constructor() { super('CatchBicho'); }
 
@@ -40,6 +42,7 @@ export class CatchBicho extends Phaser.Scene {
     this.bichos = [];
     this.startedAt = performance.now();
     this.nextSpawnAt = this.startedAt + 500;
+    this.rng = getRng();
 
     this.add.text(width / 2, 30, strings.miniGames.catchTitle, {
       fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '24px', color: '#4cd964', fontStyle: 'bold',
@@ -79,11 +82,11 @@ export class CatchBicho extends Phaser.Scene {
 
     if (performance.now() >= this.nextSpawnAt && elapsed < DURATION_MS) {
       this.nextSpawnAt = performance.now() + SPAWN_INTERVAL_MS;
-      const x = 0.15 + Math.random() * 0.7;
-      const y = 0.25 + Math.random() * 0.5;
+      const x = 0.15 + this.rng() * 0.7;
+      const y = 0.25 + this.rng() * 0.5;
       const color: BichoColor = this.mode === 'alternating'
         ? (this.nextHand === 'R' ? 'red' : 'blue')
-        : (Math.random() < 0.5 ? 'green' : 'yellow');
+        : (this.rng() < 0.5 ? 'green' : 'yellow');
       this.bichos.push(new Bicho(this, x, y, color));
       this.nextHand = this.nextHand === 'R' ? 'L' : 'R';
     }
@@ -105,5 +108,9 @@ export class CatchBicho extends Phaser.Scene {
     });
   }
 
-  shutdown(): void { if (this.unsubFrame) { this.unsubFrame(); this.unsubFrame = null; } }
+  shutdown(): void {
+    if (this.unsubFrame) { this.unsubFrame(); this.unsubFrame = null; }
+    for (const b of this.bichos) b.destroy();
+    this.bichos = [];
+  }
 }

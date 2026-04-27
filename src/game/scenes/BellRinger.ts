@@ -3,6 +3,7 @@ import { GAME_CONFIG } from '../config.ts';
 import { strings } from '../../i18n/strings.ts';
 import { Bell } from '../entities/Bell.ts';
 import { handAt } from '../../pose/spatialQueries.ts';
+import { getRng } from '../systems/rng.ts';
 import { getRefs } from '../orchestrator.ts';
 import { Narrator } from '../systems/narrator.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
@@ -26,6 +27,7 @@ export class BellRinger extends Phaser.Scene {
   private unsubFrame: (() => void) | null = null;
   private narrator!: Narrator;
   private session: string[] = [];
+  private rng: () => number = Math.random;
 
   constructor() { super('BellRinger'); }
 
@@ -37,6 +39,7 @@ export class BellRinger extends Phaser.Scene {
     this.bells = [];
     this.startedAt = performance.now();
     this.nextBeatAt = this.startedAt + 1000;
+    this.rng = getRng();
 
     this.add.text(width / 2, 30, strings.miniGames.bellTitle, {
       fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '24px', color: '#ffd60a', fontStyle: 'bold',
@@ -84,9 +87,9 @@ export class BellRinger extends Phaser.Scene {
 
     if (now >= this.nextBeatAt && elapsed < DURATION_MS) {
       this.nextBeatAt += BEAT_MS;
-      const hand: 'L' | 'R' = Math.random() < 0.5 ? 'L' : 'R';
+      const hand: 'L' | 'R' = this.rng() < 0.5 ? 'L' : 'R';
       const x = hand === 'L' ? 0.25 : 0.75;
-      const y = 0.4 + Math.random() * 0.2;
+      const y = 0.4 + this.rng() * 0.2;
       this.bells.push(new Bell(this, x, y, hand, WINDOW_MS));
     }
 
@@ -113,5 +116,9 @@ export class BellRinger extends Phaser.Scene {
     });
   }
 
-  shutdown(): void { if (this.unsubFrame) { this.unsubFrame(); this.unsubFrame = null; } }
+  shutdown(): void {
+    if (this.unsubFrame) { this.unsubFrame(); this.unsubFrame = null; }
+    for (const b of this.bells) b.destroy();
+    this.bells = [];
+  }
 }

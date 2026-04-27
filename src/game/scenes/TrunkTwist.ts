@@ -96,5 +96,8 @@ export class TrunkTwist extends Phaser.Scene {
     });
   }
 
-  shutdown(): void { if (this.unsubFrame) { this.unsubFrame(); this.unsubFrame = null; } }
+  shutdown(): void {
+    if (this.unsubFrame) { this.unsubFrame(); this.unsubFrame = null; }
+    if (this.current) { this.current.destroy(); this.current = null; }
+  }
 }

@@ -46,6 +46,8 @@ const DEFAULT_PROFILE: Profile = {
 
 export class ProfileStore {
   private cache: Profile | null = null;
+  /** Serializa writes pra evitar race entre Play.update(aggregates) e MissionSystem.tick. */
+  private writeQueue: Promise<void> = Promise.resolve();
 
   async load(): Promise<Profile> {
     if (this.cache) return this.cache;
@@ -59,6 +61,7 @@ export class ProfileStore {
         const ageStored = localStorage.getItem('movemove.ageGroup');
         if (ageStored === '5-7' || ageStored === '8-10' || ageStored === '11-12') p.ageGroup = ageStored;
       } catch { /* ignore */ }
+      this.cache = p;
       await this.save(p);
     }
     this.cache = p;
@@ -67,13 +70,27 @@ export class ProfileStore {
 
   async save(p: Profile): Promise<void> {
     this.cache = p;
-    try { await set(KEY, p); } catch { /* fallback memory-only */ }
+    this.writeQueue = this.writeQueue.then(async () => {
+      try { await set(KEY, p); } catch { /* memory-only */ }
+    });
+    return this.writeQueue;
   }
 
+  /** Update atômico: aplica patch sobre cache atualizado dentro da fila pra mergear writes concorrentes. */
   async update(patch: Partial<Profile>): Promise<Profile> {
-    const cur = await this.load();
-    const next = { ...cur, ...patch };
-    await this.save(next);
-    return next;
+    const result: { profile: Profile } = { profile: this.cache ?? DEFAULT_PROFILE };
+    this.writeQueue = this.writeQueue.then(async () => {
+      const cur = this.cache ?? (await this.loadRaw());
+      const next = { ...cur, ...patch } as Profile;
+      this.cache = next;
+      result.profile = next;
+      try { await set(KEY, next); } catch { /* memory-only */ }
+    });
+    await this.writeQueue;
+    return result.profile;
+  }
+
+  private async loadRaw(): Promise<Profile> {
+    try { return (await get<Profile>(KEY)) ?? { ...DEFAULT_PROFILE }; } catch { return { ...DEFAULT_PROFILE }; }
   }
 }

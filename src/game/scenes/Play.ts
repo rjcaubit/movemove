@@ -320,7 +320,6 @@ export class Play extends Phaser.Scene {
           if (completed.length > 0) this.narrator.speak(narratorLines.missionComplete(), 2);
         });
         this.cleanup();
-        // Summary scene chega na Fase D; até lá GameOver é o destino.
         const target = this.scene.manager.keys['Summary'] ? 'Summary' : 'GameOver';
         const data = target === 'Summary'
           ? { distance, coins, jacks: this.cumulativeJacks, armsUp: this.cumulativeArmsUp, jumps: this.cumulativeJumps, ducks: this.cumulativeDucks, durationS, bpmAvg, bpmTrack: this.bpmTrack.slice(-60) }
