@@ -11,6 +11,11 @@ import { Demo } from './scenes/Demo.ts';
 import { Settings } from './scenes/Settings.ts';
 import { Summary } from './scenes/Summary.ts';
 import { WaterBreak } from './scenes/WaterBreak.ts';
+import { MiniGamesHub } from './scenes/MiniGamesHub.ts';
+import { CatchBicho } from './scenes/CatchBicho.ts';
+import { TrunkTwist } from './scenes/TrunkTwist.ts';
+import { BellRinger } from './scenes/BellRinger.ts';
+import { MiniGameResult } from './scenes/MiniGameResult.ts';
 
 import { PoseDetector } from '../pose/poseDetector.ts';
 import { EmaSmoother } from '../pose/smoother.ts';
@@ -102,7 +107,7 @@ export function startApp(): Phaser.Game {
       width: GAME_CONFIG.width,
       height: GAME_CONFIG.height,
     },
-    scene: [Boot, Welcome, Loading, Tutorial, Calibration, Play, GameOver, Demo, Settings, Summary, WaterBreak],
+    scene: [Boot, Welcome, Loading, Tutorial, Calibration, Play, GameOver, Demo, Settings, Summary, WaterBreak, MiniGamesHub, CatchBicho, TrunkTwist, BellRinger, MiniGameResult],
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } },
     render: { pixelArt: true, antialias: false },
   });
