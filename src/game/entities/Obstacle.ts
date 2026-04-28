@@ -1,8 +1,10 @@
 import * as Phaser from 'phaser';
 import { GAME_CONFIG } from '../config.ts';
-import { laneToX, zToY, zToScale } from '../systems/pseudo3d.ts';
 import { ensureTexture } from '../systems/textureGen.ts';
 import type { Lane } from '../../pose/types.ts';
+
+const F = GAME_CONFIG.falling;
+function laneX(lane: Lane): number { return F.laneXs[lane + 1]; }
 
 export type ObstacleKind =
   | 'barrier'      | 'low_barrier' | 'wall_lane'
@@ -22,20 +24,22 @@ const SPEC_BY_KIND: Record<ObstacleKind, ObstacleSpec> = {
   laser_beam:  { w: 120, h: 40,  color: 0xff0044, shape: 'laser'  },
 };
 
+// Kinds ativos usam PNG Kenney; demais (desligados no spawner) só existem
+// para tipagem/fallback procedural caso sejam invocados manualmente.
 const TEXTURE_BY_KIND: Record<ObstacleKind, string> = {
   barrier:     'obs_barrier',
-  low_barrier: 'obs_low',
-  wall_lane:   'obs_wall',
+  low_barrier: 'obs_low_barrier_proc',
+  wall_lane:   'obs_wall_lane',
   jump_brick:  'obs_jump_brick',
   jump_column: 'obs_jump_column',
-  duck_log:    'obs_duck_log',
-  duck_banner: 'obs_duck_banner',
-  laser_beam:  'obs_laser_beam',
+  duck_log:    'obs_duck_log_proc',
+  duck_banner: 'obs_duck_banner_proc',
+  laser_beam:  'obs_laser_beam_proc',
 };
 
 export class Obstacle {
   readonly sprite: Phaser.GameObjects.Sprite;
-  z: number;
+  y: number;
   readonly lane: Lane;
   readonly kind: ObstacleKind;
   alive = true;
@@ -43,24 +47,24 @@ export class Obstacle {
   constructor(scene: Phaser.Scene, kind: ObstacleKind, lane: Lane) {
     this.kind = kind;
     this.lane = lane;
-    this.z    = GAME_CONFIG.zMax;
+    this.y    = F.spawnY;
 
-    const spec   = SPEC_BY_KIND[kind];
     const texKey = TEXTURE_BY_KIND[kind];
-    ensureTexture(scene, texKey, spec.w, spec.h, spec.color, spec.shape);
+    const spec   = SPEC_BY_KIND[kind];
+    // PNG Kenney precarregado em Boot.ts — só gera textura procedural se faltar.
+    if (!scene.textures.exists(texKey)) {
+      ensureTexture(scene, texKey, spec.w, spec.h, spec.color, spec.shape);
+    }
 
-    this.sprite = scene.add.sprite(laneToX(lane, this.z), zToY(this.z), texKey)
-      .setOrigin(0.5, 1).setScale(zToScale(this.z)).setDepth(5);
+    this.sprite = scene.add.sprite(laneX(lane), this.y, texKey)
+      .setOrigin(0.5, 1).setDepth(5)
+      .setDisplaySize(spec.w, spec.h);
   }
 
   update(speedMps: number, dtSec: number): void {
-    this.z -= speedMps * dtSec * 0.07;
-    if (this.z < -0.05) { this.alive = false; this.sprite.destroy(); return; }
-    const z = Math.max(0, this.z);
-    this.sprite.setX(laneToX(this.lane, z));
-    this.sprite.setY(zToY(z));
-    this.sprite.setScale(zToScale(z));
-    this.sprite.setDepth(5 + (1 - this.z) * 10);
+    this.y += speedMps * F.pxPerMeter * dtSec;
+    if (this.y > F.despawnY) { this.alive = false; this.sprite.destroy(); return; }
+    this.sprite.setY(this.y);
   }
 
   destroy(): void { if (this.alive) { this.sprite.destroy(); this.alive = false; } }

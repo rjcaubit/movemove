@@ -5,12 +5,12 @@ import {
 
 export const GAME_CONFIG = {
   /** Resolução lógica do canvas. Phaser escala pra tela. */
-  width: 960,
-  height: 540,
-  bgColor: 0x4488ff,
+  width: 1280,
+  height: 720,
+  bgColor: 0x0a0e1a,
 
   /** Mundo / pseudo-3D */
-  horizonY: 220,
+  horizonY: 293,
   laneXOffsetAtNear: 280,
   laneXOffsetAtHorizon: 40,
   zMin: 0,
@@ -26,15 +26,15 @@ export const GAME_CONFIG = {
   speedMax: SPEED_MAX_MPS,
 
   /** Spawning */
-  spawnIntervalMsInitial: 2500,
-  spawnIntervalMsAfter20s: 1500,
-  spawnIntervalMsAfter60s: 1000,
+  spawnIntervalMsInitial: 3500,
+  spawnIntervalMsAfter20s: 2200,
+  spawnIntervalMsAfter60s: 1500,
   coinClusterEveryMeters: 50,
   coinClusterSize: 5,
   coinSpacingMeters: 2,
 
   /** Player (px lógicos no canvas) */
-  playerY: 440,
+  playerY: 587,
   playerJumpHeightPx: 110,
   playerJumpDurationMs: 1000,
   playerDuckDurationMs: 1200,
@@ -88,6 +88,27 @@ export const GAME_CONFIG = {
     bestDistance: 'movemove.bestDistance',
     tutorialDone: 'movemove.tutorialDone',
     muted: 'movemove.muted',
+  },
+
+  /** Falling Object Game — objetos caem de cima, jogador desvia esq/dir */
+  falling: {
+    laneXs:          [240, 640, 1040] as [number, number, number],
+    groundY:          612,
+    spawnY:           -90,
+    despawnY:         800,
+    pxPerMeter:       35,
+    playerW:           72,
+    playerH:           72,
+    playerDuckH:       36,
+    jumpHeightPx:     175,
+    jumpDurMs:        460,
+    duckDurMs:        660,
+    collisionTop:     525,  // y acima disto = objeto ainda longe do chão
+    airObjY:          360,
+    airCollTop:       306,
+    airCollBot:       427,
+    breakRadiusPx:    213,
+    laneChangeDurMs:  120,
   },
 } as const;
 

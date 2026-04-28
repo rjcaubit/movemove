@@ -78,7 +78,6 @@ export class Play extends Phaser.Scene {
   private bpmSampleAccum = 0;
   private startedAtMs = 0;
   private energyLowSince: number | null = null;
-  private armsUpThisFrame = false;
 
   constructor() { super('Play'); }
 
@@ -168,7 +167,7 @@ export class Play extends Phaser.Scene {
           // Soco: derrota Punchers na mesma lane
           { const pl = this.player.getLane();
             for (const opp of this.spawner.getOpponents()) {
-              if (opp.kind === 'puncher' && opp.lane === pl && opp.z <= C.collisionZThreshold * 2) {
+              if (opp.kind === 'puncher' && opp.lane === pl && opp.y >= GAME_CONFIG.falling.collisionTop - 50) {
                 (opp as import('../entities/Puncher.ts').Puncher).punch();
                 this.scoring.addCoin();
                 this.audioBus.playSfx('coin_collect');
@@ -188,7 +187,6 @@ export class Play extends Phaser.Scene {
         }
         case 'arms_up': {
           this.cumulativeArmsUp += 1;
-          this.armsUpThisFrame = true;
           const z = this.zones.activeArmsZone();
           if (z) z.registerArmsUp(50);
           break;
@@ -402,10 +400,7 @@ export class Play extends Phaser.Scene {
     }
 
     // Colisão com oponentes
-    const oppResult = checkOpponentCollisions(
-      this.player, this.spawner.getOpponents(), this.spawner.getBoss(), this.armsUpThisFrame,
-    );
-    this.armsUpThisFrame = false;
+    const oppResult = checkOpponentCollisions(this.player, this.spawner.getOpponents());
     if (oppResult.hitOpponent && !invincible) {
       this.lives -= 1;
       this.hud.setLives(this.lives);
@@ -416,10 +411,6 @@ export class Play extends Phaser.Scene {
         this.tweens.add({ targets: flash2, alpha: 0, duration: 150, onComplete: () => flash2.destroy() });
       }
       if (this.lives <= 0) { this.audioBus.stopMusic(); this.cleanup(); this.scene.start('GameOver', { distance: this.scoring.getDistance(), coins: this.scoring.getCoins() }); return; }
-    }
-    if (oppResult.bossDead) {
-      this.audioBus.playSfx('boss_defeat');
-      for (let i = 0; i < 10; i++) this.scoring.addCoin();
     }
 
     for (const coin of result.collectedCoins) {
