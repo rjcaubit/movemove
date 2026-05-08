@@ -1,5 +1,6 @@
 import { POSE_CONFIG } from './config.ts';
 import { KP, type Baseline, type GameEvent, type Keypoint, type Lane, type PoseFrame } from './types.ts';
+import { CADENCE_THRESHOLDS } from '../tuning.ts';
 
 /**
  * EventDetector — implementa as 6 heurísticas da Seção 3.3 do EXERGAME_PROJETO.md.
@@ -17,6 +18,7 @@ export class EventDetector extends EventTarget {
   private duckSince: number | null = null;
   // lane
   private currentLane: Lane = 0;
+  private lastLaneChangeAt = 0;
   // cadence
   private kneeUpHistory: Array<{ side: 'L' | 'R'; t: number }> = [];
   // jumping_jack
@@ -35,6 +37,7 @@ export class EventDetector extends EventTarget {
     this.prevHipY = null;
     this.duckSince = null;
     this.currentLane = 0;
+    this.lastLaneChangeAt = 0;
     this.kneeUpHistory = [];
     this.lastJackAt = 0;
     this.armsUpEmittedAt = 0;
@@ -118,8 +121,9 @@ export class EventDetector extends EventTarget {
     } else if (this.currentLane === 1) {
       if (dx < T - Th) next = 0;
     }
-    if (next !== this.currentLane) {
+    if (next !== this.currentLane && t - this.lastLaneChangeAt >= POSE_CONFIG.laneCooldownMs) {
       this.currentLane = next;
+      this.lastLaneChangeAt = t;
       this.emit({ type: 'lane_change', lane: next, source: 'pose', t });
     }
   }
@@ -148,9 +152,9 @@ export class EventDetector extends EventTarget {
       const stepsPerSec = (this.kneeUpHistory.length * 1000) / POSE_CONFIG.cadenceWindowMs;
       const bpm = stepsPerSec * 60;
       const intensity =
-        stepsPerSec < 0.5 ? 'none'
-        : stepsPerSec < 1.5 ? 'walking'
-        : stepsPerSec < 3 ? 'jogging'
+        stepsPerSec < CADENCE_THRESHOLDS.walking ? 'none'
+        : stepsPerSec < CADENCE_THRESHOLDS.jogging ? 'walking'
+        : stepsPerSec < CADENCE_THRESHOLDS.running ? 'jogging'
         : 'running';
       this.lastCadenceEmitT = t;
       this.emit({ type: 'cadence', stepsPerSec, bpm, intensity, source: 'pose', t });

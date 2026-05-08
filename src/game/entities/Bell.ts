@@ -9,7 +9,7 @@ export class Bell {
   readonly windowMs: number;
   alive = true;
 
-  constructor(scene: Phaser.Scene, normX: number, normY: number, hand: 'L' | 'R', windowMs = 800) {
+  constructor(scene: Phaser.Scene, normX: number, normY: number, hand: 'L' | 'R', color: number, windowMs = 800) {
     this.normX = normX;
     this.normY = normY;
     this.hand = hand;
@@ -17,7 +17,6 @@ export class Bell {
     this.bornAtMs = performance.now();
     const x = normX * scene.scale.width;
     const y = normY * scene.scale.height;
-    const color = hand === 'L' ? 0x0a84ff : 0xff453a;
     const ring = scene.add.circle(0, 0, 44, color, 0.3).setStrokeStyle(5, color, 1);
     const txt = scene.add.text(0, 0, '🔔', { fontSize: '32px' }).setOrigin(0.5);
     this.sprite = scene.add.container(x, y, [ring, txt]).setDepth(20);

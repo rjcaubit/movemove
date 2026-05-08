@@ -140,8 +140,9 @@ export const ANIMATORS: Record<string, Animator> = {
     const left = p > 0;
     return {
       ...NEUTRAL_POSE,
-      laShoulder: 150 * DEG, laElbow: -120 * DEG,
-      raShoulder: 150 * DEG, raElbow: -120 * DEG,
+      // Braços quase verticais e antebraço dobra PRA DENTRO (mãos na cabeça)
+      laShoulder: 165 * DEG, laElbow: 80 * DEG,
+      raShoulder: 165 * DEG, raElbow: 80 * DEG,
       llHip: left ? 70 * DEG * Math.abs(p) : 0,
       llKnee: left ? -100 * DEG * Math.abs(p) : 0,
       rlHip: !left ? 70 * DEG * Math.abs(p) : 0,
@@ -209,32 +210,35 @@ export const ANIMATORS: Record<string, Animator> = {
 
   crossKick: (t) => {
     const p = swing(t, 1100);
-    const left = p > 0;
+    const leftPhase = p > 0; // perna ESQ chuta + braço DIR cruza pra esquerda
     const m = Math.abs(p);
     return {
       ...NEUTRAL_POSE,
-      laShoulder: left ? 30 * DEG : (40 + 70 * m) * DEG,
-      raShoulder: !left ? 30 * DEG : (40 + 70 * m) * DEG,
-      llHip: left ? 0 : 70 * DEG * m,
-      rlHip: !left ? 0 : 70 * DEG * m,
+      // Braço cruza o corpo: ângulo NEGATIVO (mirror inverte → vai pro lado oposto)
+      laShoulder: !leftPhase ? -(50 + 60 * m) * DEG : 25 * DEG,
+      raShoulder: leftPhase ? -(50 + 60 * m) * DEG : 25 * DEG,
+      // Perna sobe alta (chute frontal)
+      llHip: leftPhase ? 130 * DEG * m : 0,
+      rlHip: !leftPhase ? 130 * DEG * m : 0,
       tilt: p * 6 * DEG,
     };
   },
 
   twistKneePull: (t) => {
     const p = swing(t, 1400);
-    const left = p > 0;
+    const leftKnee = p > 0;  // joelho ESQ sobe + cotovelo DIR cruza pra esquerda
     const m = Math.abs(p);
     return {
       ...NEUTRAL_POSE,
-      laShoulder: left ? 30 * DEG : (50 + 60 * m) * DEG,
-      laElbow: left ? -20 * DEG : -100 * DEG * m,
-      raShoulder: !left ? 30 * DEG : (50 + 60 * m) * DEG,
-      raElbow: !left ? -20 * DEG : -100 * DEG * m,
-      llHip: left ? 60 * DEG * m : 0,
-      llKnee: left ? -90 * DEG * m : 0,
-      rlHip: !left ? 60 * DEG * m : 0,
-      rlKnee: !left ? -90 * DEG * m : 0,
+      // Cotovelo cruza pro lado oposto: ângulo NEGATIVO no ombro do braço cruzante
+      laShoulder: !leftKnee ? -(60 + 50 * m) * DEG : 25 * DEG,
+      laElbow: !leftKnee ? -90 * DEG * m : -20 * DEG,
+      raShoulder: leftKnee ? -(60 + 50 * m) * DEG : 25 * DEG,
+      raElbow: leftKnee ? -90 * DEG * m : -20 * DEG,
+      llHip: leftKnee ? 60 * DEG * m : 0,
+      llKnee: leftKnee ? -90 * DEG * m : 0,
+      rlHip: !leftKnee ? 60 * DEG * m : 0,
+      rlKnee: !leftKnee ? -90 * DEG * m : 0,
       tilt: -p * 10 * DEG,
     };
   },

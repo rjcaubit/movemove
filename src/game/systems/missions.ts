@@ -20,6 +20,11 @@ export interface MissionDeltas {
   durationS?: number;
   bichosCaught?: number;
   trunkRotations?: number;
+  chickenFlaps?: number;
+  chickenScratches?: number;
+  danceMoves?: number;
+  castorHits?: number;
+  birdSeconds?: number;
   miniGameCompleted?: number;
 }
 
@@ -89,6 +94,9 @@ export class MissionSystem {
         case 'daily.armsUp': delta = deltas.armsUp ?? 0; break;
         case 'daily.bichosCaught': delta = deltas.bichosCaught ?? 0; break;
         case 'daily.trunkRotations': delta = deltas.trunkRotations ?? 0; break;
+        case 'daily.chickenFlaps': delta = deltas.chickenFlaps ?? 0; break;
+        case 'daily.chickenScratches': delta = deltas.chickenScratches ?? 0; break;
+        case 'daily.danceMoves': delta = deltas.danceMoves ?? 0; break;
       }
       if (delta > 0) {
         m.progress += delta;

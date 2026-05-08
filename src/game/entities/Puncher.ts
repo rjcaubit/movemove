@@ -1,13 +1,15 @@
 import * as Phaser from 'phaser';
 import { GAME_CONFIG } from '../config.ts';
-import { laneToX, zToY, zToScale } from '../systems/pseudo3d.ts';
 import { ensureTexture } from '../systems/textureGen.ts';
 import type { Lane } from '../../pose/types.ts';
+
+const F = GAME_CONFIG.falling;
+function laneX(lane: Lane): number { return F.laneXs[lane + 1]; }
 
 export class Puncher {
   readonly sprite:  Phaser.GameObjects.Sprite;
   private label:    Phaser.GameObjects.Text;
-  z:    number;
+  y:    number;
   readonly lane:    Lane;
   alive = true;
   readonly kind = 'puncher' as const;
@@ -15,17 +17,15 @@ export class Puncher {
 
   constructor(scene: Phaser.Scene, lane: Lane) {
     this.lane = lane;
-    this.z    = GAME_CONFIG.zMax;
+    this.y    = F.spawnY;
     ensureTexture(scene, 'puncher', 60, 90, 0xdd4400, 'rect');
-    this.sprite = scene.add.sprite(laneToX(lane, this.z), zToY(this.z), 'puncher')
-      .setOrigin(0.5, 1).setScale(zToScale(this.z)).setDepth(5).setTint(0xdd4400);
-
-    // Ícone de soco sobre o personagem
-    this.label = scene.add.text(0, 0, '🥊', { fontSize: '18px' })
+    const key = scene.textures.exists('puncher_kenney') ? 'puncher_kenney' : 'puncher';
+    this.sprite = scene.add.sprite(laneX(lane), this.y, key)
+      .setOrigin(0.5, 1).setDepth(5).setDisplaySize(60, 90).setTint(0xdd4400);
+    this.label = scene.add.text(laneX(lane), this.y - 100, '🥊', { fontSize: '18px' })
       .setOrigin(0.5, 1).setDepth(6);
   }
 
-  /** Chamado quando o jogador dá um jumping_jack. Retorna true se derrotou. */
   punch(): boolean {
     if (this.defeated) return false;
     this.defeated = true;
@@ -39,14 +39,10 @@ export class Puncher {
   }
 
   update(speedMps: number, dtSec: number): void {
-    this.z -= speedMps * dtSec * 0.07;
-    if (this.z < -0.05) { this.alive = false; this.destroy(); return; }
-    const z  = Math.max(0, this.z);
-    const sc = zToScale(z);
-    const sx = laneToX(this.lane, z);
-    const sy = zToY(z);
-    this.sprite.setX(sx).setY(sy).setScale(sc).setDepth(5 + (1 - this.z) * 10);
-    this.label.setX(sx).setY(sy - 90 * sc).setScale(sc);
+    this.y += speedMps * F.pxPerMeter * dtSec;
+    if (this.y > F.despawnY) { this.alive = false; this.destroy(); return; }
+    this.sprite.setY(this.y);
+    this.label.setX(laneX(this.lane)).setY(this.y - 100);
   }
 
   destroy(): void {

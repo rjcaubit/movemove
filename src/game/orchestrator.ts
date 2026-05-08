@@ -15,7 +15,16 @@ import { MiniGamesHub } from './scenes/MiniGamesHub.ts';
 import { CatchBicho } from './scenes/CatchBicho.ts';
 import { TrunkTwist } from './scenes/TrunkTwist.ts';
 import { BellRinger } from './scenes/BellRinger.ts';
+import { CastorGame } from './scenes/CastorGame.ts';
+import { CastorModePicker } from './scenes/CastorModePicker.ts';
+import { BirdGame } from './scenes/BirdGame.ts';
+import { ChickenGame } from './scenes/ChickenGame.ts';
+import { DanceDance } from './scenes/DanceDance.ts';
+import { BodyCheck } from './scenes/BodyCheck.ts';
 import { MiniGameResult } from './scenes/MiniGameResult.ts';
+import { GuidedSession } from './scenes/GuidedSession.ts';
+import { GuidedSessionPicker } from './scenes/GuidedSessionPicker.ts';
+import { Rec } from './scenes/Rec.ts';
 
 import { PoseDetector } from '../pose/poseDetector.ts';
 import { EmaSmoother } from '../pose/smoother.ts';
@@ -38,6 +47,8 @@ export interface AppRefs {
   video: HTMLVideoElement;
   /** Subscribe to smoothed PoseFrame stream (after EMA). Returns unsubscribe. */
   onSmoothedFrame: (cb: (f: PoseFrame) => void) => () => void;
+  /** Subscribe to player 2 smoothed PoseFrame (2-player games). Returns unsubscribe. */
+  onSmoothedFrameP2: (cb: (f: PoseFrame) => void) => () => void;
   profileStore: ProfileStore;
   runHistory: RunHistoryStore;
   missions: MissionSystem;
@@ -80,6 +91,14 @@ export function startApp(): Phaser.Game {
     for (const cb of smoothedSubs) cb(frame);
   });
 
+  const smoother2 = new EmaSmoother(POSE_CONFIG.emaAlpha);
+  const smoothedSubs2 = new Set<(f: PoseFrame) => void>();
+  detector.onFrame2((raw: PoseFrame) => {
+    const smoothed = smoother2.smooth(raw.keypoints);
+    const frame: PoseFrame = { ...raw, keypoints: smoothed };
+    for (const cb of smoothedSubs2) cb(frame);
+  });
+
   if (debugPanel) {
     eventDetector.addEventListener('event', (e) => {
       const ev = (e as CustomEvent<GameEvent>).detail;
@@ -97,11 +116,14 @@ export function startApp(): Phaser.Game {
   const refs: AppRefs = {
     detector, smoother, calibrator, eventDetector, video,
     onSmoothedFrame: (cb) => { smoothedSubs.add(cb); return () => smoothedSubs.delete(cb); },
+    onSmoothedFrameP2: (cb) => { smoothedSubs2.add(cb); return () => smoothedSubs2.delete(cb); },
     profileStore, runHistory, missions,
     detectorReady: false,
     markDetectorReady: () => { refs.detectorReady = true; },
   };
 
+  // GAME_CONFIG.width/height já foram ajustados em main.ts pra casar com
+  // o viewport (em portrait, vira ~720×altura-proporcional pra fullscreen real)
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',
@@ -112,7 +134,7 @@ export function startApp(): Phaser.Game {
       width: GAME_CONFIG.width,
       height: GAME_CONFIG.height,
     },
-    scene: [Boot, Welcome, Loading, Tutorial, Calibration, Play, GameOver, Demo, Settings, Summary, WaterBreak, MiniGamesHub, CatchBicho, TrunkTwist, BellRinger, MiniGameResult],
+    scene: [Boot, Welcome, Loading, Tutorial, Calibration, Play, GameOver, Demo, Settings, Summary, WaterBreak, MiniGamesHub, BodyCheck, CatchBicho, TrunkTwist, BellRinger, ChickenGame, DanceDance, CastorGame, CastorModePicker, BirdGame, MiniGameResult, GuidedSession, GuidedSessionPicker, Rec],
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } },
     render: { pixelArt: true, antialias: false },
   });

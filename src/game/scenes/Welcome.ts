@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { GAME_CONFIG } from '../config.ts';
+import { GAME_CONFIG, isPortrait } from '../config.ts';
 import { strings } from '../../i18n/strings.ts';
 
 export class Welcome extends Phaser.Scene {
@@ -7,50 +7,74 @@ export class Welcome extends Phaser.Scene {
 
   create(): void {
     const { width, height } = GAME_CONFIG;
-    this.cameras.main.setBackgroundColor(GAME_CONFIG.bgColor);
+    this.cameras.main.setBackgroundColor('#1a82c4');
 
-    this.add.image(width / 2, height / 2 - 100, 'mascot').setScale(4);
+    if (this.textures.exists('welcome_bg')) {
+      const tex = this.textures.get('welcome_bg').getSourceImage() as HTMLImageElement;
+      const scale = isPortrait()
+        ? Math.max(width / tex.width, height / tex.height) // cover em retrato
+        : width / tex.width;
+      this.add.image(width / 2, 0, 'welcome_bg').setOrigin(0.5, 0).setScale(scale).setDepth(-10);
+    } else {
+      // Fallback se o asset não carregou
+      this.add.text(width / 2, height / 2 - 100, 'MOVEMOVE', {
+        fontFamily: 'VT323, ui-monospace', fontSize: '64px', color: '#ff8c1a', fontStyle: 'bold',
+        stroke: '#000', strokeThickness: 6,
+      }).setOrigin(0.5);
+    }
 
-    this.add.text(width / 2, height / 2 + 0, 'MOVEMOVE', {
-      fontFamily: 'VT323, ui-monospace',
-      fontSize: '40px',
-      color: '#4cd964',
-      fontStyle: 'bold',
+    // Faixa inferior pra alojar os botões reais sobre uma base sólida
+    if (isPortrait()) {
+      const barH = 200;
+      const bar = this.add.graphics().setDepth(1);
+      bar.fillStyle(0x000000, 0.6);
+      bar.fillRect(0, height - barH, width, barH);
+      this.makeButton(width / 2, height - barH + 60, 380, 86,
+        strings.welcome.cta, 0xffae0a, 0xffffff, '#ffffff',
+        () => this.scene.start('Loading', { next: 'MiniGamesHub' }));
+      this.makeButton(width / 2, height - 50, 280, 64,
+        strings.welcome.settings, 0x6a6a6a, 0x2a2a2a, '#ffffff',
+        () => this.scene.start('Settings', { from: 'Welcome' }));
+    } else {
+      const barH = 110;
+      const bar = this.add.graphics().setDepth(1);
+      bar.fillStyle(0x000000, 0.55);
+      bar.fillRect(0, height - barH, width, barH);
+      this.makeButton(width / 2 - 200, height - barH / 2, 280, 70,
+        strings.welcome.settings, 0x6a6a6a, 0x2a2a2a, '#ffffff',
+        () => this.scene.start('Settings', { from: 'Welcome' }));
+      this.makeButton(width / 2 + 130, height - barH / 2, 320, 78,
+        strings.welcome.cta, 0xffae0a, 0xffffff, '#ffffff',
+        () => this.scene.start('Loading', { next: 'MiniGamesHub' }));
+    }
+  }
+
+  private makeButton(
+    x: number, y: number, w: number, h: number,
+    label: string, fill: number, stroke: number, textColor: string,
+    onClick: () => void,
+  ): Phaser.GameObjects.Container {
+    const r = 14;
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0x000000, 0.5);
+    shadow.fillRoundedRect(-w / 2 + 4, -h / 2 + 6, w, h, r);
+    const bg = this.add.graphics();
+    bg.fillStyle(fill, 1);
+    bg.fillRoundedRect(-w / 2, -h / 2, w, h, r);
+    bg.lineStyle(5, stroke, 1);
+    bg.strokeRoundedRect(-w / 2, -h / 2, w, h, r);
+    const ribbon = this.add.graphics();
+    ribbon.fillStyle(0xffffff, 0.22);
+    ribbon.fillRoundedRect(-w / 2 + 6, -h / 2 + 5, w - 12, h * 0.32, 8);
+    const txt = this.add.text(0, 0, label, {
+      fontFamily: 'VT323, ui-monospace', fontSize: `${Math.round(h * 0.55)}px`,
+      color: textColor, fontStyle: 'bold', stroke: '#000', strokeThickness: 4,
     }).setOrigin(0.5);
-
-    this.add.text(width / 2, height / 2 + 60, strings.welcome.headline, {
-      fontFamily: 'VT323, ui-monospace',
-      fontSize: '18px',
-      color: '#8a8d92',
-      align: 'center',
-      wordWrap: { width: width - 80 },
-    }).setOrigin(0.5);
-
-    const cta = this.add.text(width / 2, height - 110, strings.welcome.cta, {
-      fontFamily: 'VT323, ui-monospace',
-      fontSize: '24px',
-      color: '#0b0d10',
-      backgroundColor: '#4cd964',
-      padding: { x: 24, y: 12 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    cta.setName('btn-start');
-    cta.on('pointerup', () => this.scene.start('Loading'));
-
-    const minigamesBtn = this.add.text(width / 2, height - 50, '🎮 ' + strings.miniGames.hubTitle, {
-      fontFamily: 'VT323, ui-monospace',
-      fontSize: '18px',
-      color: '#0b0d10',
-      backgroundColor: '#ffd60a',
-      padding: { x: 20, y: 8 },
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    minigamesBtn.setName('btn-minigames');
-    minigamesBtn.on('pointerup', () => this.scene.start('Loading', { next: 'MiniGamesHub' }));
-
-    const settingsBtn = this.add.text(width - 24, 24, strings.welcome.settings, {
-      fontFamily: 'VT323, ui-monospace', fontSize: '14px', color: '#f5f5f5',
-      backgroundColor: 'rgba(255,255,255,0.1)', padding: { x: 12, y: 6 },
-    }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
-    settingsBtn.setName('btn-settings');
-    settingsBtn.on('pointerup', () => this.scene.start('Settings', { from: 'Welcome' }));
+    const hit = this.add.zone(0, 0, w, h).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    hit.on('pointerup', onClick);
+    hit.on('pointerover', () => container.setScale(1.04));
+    hit.on('pointerout',  () => container.setScale(1));
+    const container = this.add.container(x, y, [shadow, bg, ribbon, txt, hit]).setDepth(10);
+    return container;
   }
 }

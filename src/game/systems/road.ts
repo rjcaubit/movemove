@@ -2,79 +2,100 @@ import * as Phaser from 'phaser';
 import { GAME_CONFIG } from '../config.ts';
 
 const C = GAME_CONFIG;
+const F = C.falling;
 
-/** Estrada pseudo-3D: segmentos alternados + paleta Pixel Arcade + neblina. */
+const BG_KEYS = ['bg_purple_a', 'bg_purple_b', 'bg_purple_c'];
+const TILE_PX  = 160;
+const COLS     = Math.ceil(C.width  / TILE_PX) + 1;
+const ROWS     = Math.ceil(C.height / TILE_PX) + 2;
+const SCROLL_PX_S = 50; // pixels/sec — fixed slow scroll independent of game speed
+
+function randKey() { return BG_KEYS[Math.floor(Math.random() * BG_KEYS.length)]; }
+
 export class Road {
+  private bgRows: Phaser.GameObjects.Image[][] = [];
+  private rowY: number[] = [];
   private gfx: Phaser.GameObjects.Graphics;
-  private offset = 0;
 
   constructor(scene: Phaser.Scene) {
-    this.gfx = scene.add.graphics();
-    this.gfx.setDepth(1);
+    // Solid dark base
+    scene.add.graphics().setDepth(0)
+      .fillStyle(0x0d0a1a, 1).fillRect(0, 0, C.width, C.height);
+
+    const allLoaded = BG_KEYS.every(k => scene.textures.exists(k));
+    if (allLoaded) {
+      for (let r = 0; r < ROWS; r++) {
+        const y = (r - 1) * TILE_PX;
+        this.rowY.push(y);
+        const row: Phaser.GameObjects.Image[] = [];
+        for (let col = 0; col < COLS; col++) {
+          row.push(
+            scene.add.image(col * TILE_PX, y, randKey())
+              .setOrigin(0, 0)
+              .setDisplaySize(TILE_PX, TILE_PX)
+              .setAlpha(0.65)
+              .setDepth(1),
+          );
+        }
+        this.bgRows.push(row);
+      }
+    }
+
+    // Top gradient overlay
+    const topFade = scene.add.graphics().setDepth(2);
+    topFade.fillStyle(0x000000, 0.6);
+    topFade.fillRect(0, 0, C.width, 100);
+    topFade.fillStyle(0x000000, 0.25);
+    topFade.fillRect(0, 100, C.width, 150);
+
+    // Lane lines and ground marker (drawn once, static)
+    this.gfx = scene.add.graphics().setDepth(3);
+    this.drawLines();
   }
 
-  update(speedMps: number, dtSec: number): void {
-    this.offset = (this.offset + speedMps * dtSec * 80) % 80;
-    this.draw();
+  drawNow(): void { /* no-op */ }
+
+  update(_speedMps: number, dt: number): void {
+    for (let r = 0; r < this.bgRows.length; r++) {
+      this.rowY[r] += SCROLL_PX_S * dt;
+
+      if (this.rowY[r] >= C.height + TILE_PX) {
+        // Wrap row back to top and re-randomise its tiles
+        this.rowY[r] -= ROWS * TILE_PX;
+        for (const img of this.bgRows[r]) img.setTexture(randKey());
+      }
+
+      for (const img of this.bgRows[r]) img.setY(this.rowY[r]);
+    }
   }
 
-  destroy(): void { this.gfx.destroy(); }
+  destroy(): void {
+    for (const row of this.bgRows) for (const img of row) img.destroy();
+    this.gfx.destroy();
+  }
 
-  private draw(): void {
+  private drawLines(): void {
     const g = this.gfx;
-    const P = C.palette;
     g.clear();
 
-    const cx     = C.width / 2;
-    const nearHW = C.laneXOffsetAtNear * 1.7;
-    const numSeg  = 20;
+    g.fillStyle(0x3d2200, 0.18);
+    g.fillRect(0, F.collisionTop, C.width, C.height - F.collisionTop);
 
-    // Céu com gradiente
-    g.fillGradientStyle(P.sky, P.sky, P.skyHorizon, P.skyHorizon, 1);
-    g.fillRect(0, 0, C.width, C.horizonY);
+    g.lineStyle(3, 0xffaa00, 0.8);
+    for (let i = 0; i < F.laneXs.length - 1; i++) {
+      const lx = (F.laneXs[i] + F.laneXs[i + 1]) / 2;
+      g.beginPath(); g.moveTo(lx, 0); g.lineTo(lx, C.height); g.strokePath();
+    }
 
-    // Segmentos de pista + grama (do mais distante ao mais próximo)
-    for (let i = numSeg; i >= 0; i--) {
-      const t  = i / numSeg;
-      const t1 = (i + 1) / numSeg;
-      const y  = C.horizonY + (C.height - C.horizonY) * Math.pow(t,  1.3);
-      const y1 = C.horizonY + (C.height - C.horizonY) * Math.pow(t1, 1.3);
-      const hw  = nearHW * Math.pow(t,  1.1);
-      const hw1 = nearHW * Math.pow(t1, 1.1);
+    g.lineStyle(4, 0xffcc00, 1);
+    g.beginPath(); g.moveTo(0, F.groundY); g.lineTo(C.width, F.groundY); g.strokePath();
 
-      const fogAlpha = C.fog.enabled ? Math.max(0, 1 - t * (1 - C.fog.density) * 2) : 1;
+    g.lineStyle(2, 0xffcc44, 0.4);
+    g.beginPath(); g.moveTo(0, F.collisionTop); g.lineTo(C.width, F.collisionTop); g.strokePath();
 
-      // Grama
-      const grassCol = i % 2 === 0 ? P.grassA : P.grassB;
-      g.fillStyle(grassCol, fogAlpha);
-      g.fillRect(0, y, C.width, Math.max(1, y1 - y));
-
-      // Pista
-      const roadCol = i % 2 === 0 ? P.roadA : P.roadB;
-      g.fillStyle(roadCol, fogAlpha);
-      g.beginPath();
-      g.moveTo(cx - hw,  y);  g.lineTo(cx + hw,  y);
-      g.lineTo(cx + hw1, y1); g.lineTo(cx - hw1, y1);
-      g.closePath();
-      g.fillPath();
-
-      // Stripes laterais amarelas
-      const sw = hw * 0.10;
-      g.fillStyle(P.stripe, fogAlpha);
-      g.beginPath();
-      g.moveTo(cx - hw,       y);  g.lineTo(cx - hw  + sw, y);
-      g.lineTo(cx - hw1 + sw, y1); g.lineTo(cx - hw1,      y1);
-      g.closePath(); g.fillPath();
-      g.beginPath();
-      g.moveTo(cx + hw,       y);  g.lineTo(cx + hw  - sw, y);
-      g.lineTo(cx + hw1 - sw, y1); g.lineTo(cx + hw1,      y1);
-      g.closePath(); g.fillPath();
-
-      // Linha central tracejada
-      if (i % 3 === 0) {
-        g.fillStyle(P.line, fogAlpha * 0.7);
-        g.fillRect(cx - 2, y, 4, (y1 - y) * 0.6);
-      }
+    g.lineStyle(2, 0xffaa00, 0.55);
+    for (const lx of F.laneXs) {
+      g.beginPath(); g.moveTo(lx, F.groundY - 24); g.lineTo(lx, F.groundY); g.strokePath();
     }
   }
 }

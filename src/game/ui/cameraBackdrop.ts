@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { KeypointOverlay } from '../../ui/keypointOverlay.ts';
+import { KeypointOverlay, type HandGlow } from '../../ui/keypointOverlay.ts';
 import type { PoseFrame } from '../../pose/types.ts';
 import { GAME_CONFIG } from '../config.ts';
 
@@ -20,6 +20,7 @@ export class CameraBackdrop {
   private video: HTMLVideoElement;
   private scene: Phaser.Scene;
   private textureKey: string;
+  handGlows: HandGlow[] | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -48,11 +49,25 @@ export class CameraBackdrop {
     const ctx = this.canvas.getContext('2d');
     if (ctx && this.video.videoWidth > 0) {
       ctx.save();
-      ctx.translate(this.canvas.width, 0);
+      // Limpa antes de desenhar (caso o vídeo não cubra tudo)
+      ctx.fillStyle = '#0a0a14';
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      // Cover-scale: preserva aspect do vídeo, recortando o que sobrar
+      const cw = this.canvas.width;
+      const ch = this.canvas.height;
+      const vw = this.video.videoWidth;
+      const vh = this.video.videoHeight;
+      const scale = Math.max(cw / vw, ch / vh);
+      const dw = vw * scale;
+      const dh = vh * scale;
+      const dx = (cw - dw) / 2;
+      const dy = (ch - dh) / 2;
+      // Espelha horizontalmente
+      ctx.translate(cw, 0);
       ctx.scale(-1, 1);
-      ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+      ctx.drawImage(this.video, cw - dx - dw, dy, dw, dh);
       ctx.restore();
-      if (this.lastFrame) this.overlay.draw(this.lastFrame.keypoints, this.lastFrame.confidence);
+      if (this.lastFrame) this.overlay.draw(this.lastFrame.keypoints, this.lastFrame.confidence, this.handGlows ?? undefined);
       const tex = this.scene.textures.get(this.textureKey) as Phaser.Textures.CanvasTexture;
       tex.refresh();
     }

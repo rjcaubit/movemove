@@ -1,11 +1,7 @@
 import type { CadenceIntensity } from '../../pose/types.ts';
+import { ENERGY_RATES, ENERGY_FULL_SPEED_THRESHOLD } from '../../tuning.ts';
 
-const RATES: Record<CadenceIntensity, number> = {
-  none: -8,
-  walking: 5,
-  jogging: 12,
-  running: 25,
-};
+const RATES: Record<CadenceIntensity, number> = ENERGY_RATES;
 
 export class EnergySystem {
   private value = 50;
@@ -26,8 +22,8 @@ export class EnergySystem {
 
   /** Multiplicador de velocidade do mundo. */
   getSpeedFactor(): number {
-    if (this.value >= 30) return 1;
-    return Math.max(0, this.value / 30);
+    if (this.value >= ENERGY_FULL_SPEED_THRESHOLD) return 1;
+    return Math.max(0, this.value / ENERGY_FULL_SPEED_THRESHOLD);
   }
 
   reset(): void { this.value = 50; this.intensity = 'none'; }

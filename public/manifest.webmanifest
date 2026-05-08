@@ -1,7 +1,7 @@
 {
-  "name": "Movemove — Endless Runner",
+  "name": "Movemove — Mexa o corpo!",
   "short_name": "Movemove",
-  "description": "Endless runner controlado por movimento físico via câmera.",
+  "description": "Mini-jogos de movimento controlados pelo corpo via câmera.",
   "lang": "pt-BR",
   "start_url": "/",
   "display": "browser",

@@ -26,21 +26,22 @@ export class Bicho {
     this.bornAtMs = performance.now();
     const screenX = normX * scene.scale.width;
     const screenY = normY * scene.scale.height;
-    const body = scene.add.circle(0, 0, 36, COLOR_HEX[color], 1).setStrokeStyle(3, 0x000000, 0.6);
-    const eyeL = scene.add.circle(-10, -8, 5, 0xffffff).setStrokeStyle(1, 0x000000);
-    const eyeR = scene.add.circle(10, -8, 5, 0xffffff).setStrokeStyle(1, 0x000000);
-    const pupL = scene.add.circle(-10, -8, 2, 0x000000);
-    const pupR = scene.add.circle(10, -8, 2, 0x000000);
-    this.sprite = scene.add.container(screenX, screenY, [body, eyeL, eyeR, pupL, pupR]).setDepth(20);
-    scene.tweens.add({ targets: this.sprite, scale: { from: 0.8, to: 1.1 }, duration: 600, yoyo: true, repeat: -1 });
+    const halo = scene.add.circle(0, 0, 46, COLOR_HEX[color], 0.25).setStrokeStyle(3, COLOR_HEX[color], 0.7);
+    const body = scene.add.text(0, 0, '🪰', { fontSize: '64px' }).setOrigin(0.5);
+    this.sprite = scene.add.container(screenX, screenY, [halo, body]).setDepth(20);
+    // Voa zigue-zague
+    scene.tweens.add({ targets: this.sprite, scale: { from: 0.9, to: 1.1 }, duration: 250, yoyo: true, repeat: -1 });
+    scene.tweens.add({ targets: this.sprite, y: screenY - 6, duration: 320, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    scene.tweens.add({ targets: body, angle: { from: -10, to: 10 }, duration: 180, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
   }
 
   isExpired(): boolean { return performance.now() - this.bornAtMs > this.lifetimeMs; }
 
   catch(scene: Phaser.Scene, onComplete: () => void): void {
     this.alive = false;
+    // Splat: cresce e some
     scene.tweens.add({
-      targets: this.sprite, scale: 1.6, alpha: 0, duration: 250,
+      targets: this.sprite, scale: 1.8, alpha: 0, duration: 220,
       onComplete: () => { this.sprite.destroy(); onComplete(); },
     });
   }

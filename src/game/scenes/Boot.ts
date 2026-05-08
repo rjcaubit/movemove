@@ -37,6 +37,9 @@ export class Boot extends Phaser.Scene {
       this.load.image(`ghost_${i}`,  `/assets/sprites/ghost_${i}.png`);
     }
 
+    this.load.image('welcome_bg',    '/assets/sprites/welcome_bg.png');
+    this.load.image('hub_bg',        '/assets/sprites/hub_bg.png');
+    this.load.spritesheet('pictograms', '/assets/sprites/pictograms_sheet.png', { frameWidth: 124, frameHeight: 124 });
     this.load.image('bg_tile',       '/assets/sprites/bg_tile.png');
     this.load.image('bg_purple_a',   '/assets/sprites/bg_purple_a.png');
     this.load.image('bg_purple_b',   '/assets/sprites/bg_purple_b.png');
@@ -63,7 +66,18 @@ export class Boot extends Phaser.Scene {
   }
 
   create(): void {
-    const demo = new URLSearchParams(window.location.search).get('demo') === '1';
+    const params = new URLSearchParams(window.location.search);
+    const demo = params.get('demo') === '1';
+    const danceCheck = params.get('dance') === 'check';
+    const recMode = params.get('rec') === '1';
+    if (danceCheck) {
+      this.scene.start('Loading', { next: 'DanceDance' });
+      return;
+    }
+    if (recMode) {
+      this.scene.start('Loading', { next: 'Rec' });
+      return;
+    }
     this.scene.start(demo ? 'Demo' : 'Welcome');
   }
 

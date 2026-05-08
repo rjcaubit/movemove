@@ -1,5 +1,8 @@
 // Thresholds expressos em FRAÇÃO de H_corpo (Seção 3.3 do EXERGAME_PROJETO.md).
 // NUNCA usar valores em pixels absolutos — quebra com criança vs adulto.
+// Parâmetros jogáveis (joelho, cadência) vivem em src/tuning.ts.
+
+import { KNEE_RAISE_FRAC, CADENCE_WINDOW_MS } from '../tuning.ts';
 
 export const POSE_CONFIG = {
   /** EMA — fator de suavização (ADR-5 do study #1) */
@@ -25,12 +28,13 @@ export const POSE_CONFIG = {
   duckSustainMs: 200,
 
   /** Heurística LANE CHANGE */
-  laneThresholdFracOmbros: 0.35,
-  laneHysteresisFrac: 0.12,
+  laneThresholdFracOmbros: 0.55,
+  laneHysteresisFrac: 0.18,
+  laneCooldownMs: 400,
 
-  /** Heurística RUNNING CADENCE */
-  cadenceKneeRaiseFracHCorpo: 0.08,
-  cadenceWindowMs: 2000,
+  /** Heurística RUNNING CADENCE — valores em src/tuning.ts */
+  cadenceKneeRaiseFracHCorpo: KNEE_RAISE_FRAC,
+  cadenceWindowMs: CADENCE_WINDOW_MS,
 
   /** Heurística JUMPING JACK */
   jackAnkleSpreadFactorOmbros: 1.5,
@@ -44,7 +48,7 @@ export const POSE_CONFIG = {
   wasmPath: '/wasm',
   videoIdealWidth: 854,
   videoIdealHeight: 480,
-  numPoses: 1,
+  numPoses: 2,
   /** Confiança mínima usada nos 3 thresholds de detecção/presença/tracking do MediaPipe */
   mediapipeMinConfidence: 0.5,
 

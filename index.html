@@ -4,7 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0d10" />
-    <title>Movemove — Endless Runner</title>
+    <title>Movemove — Mexa o corpo!</title>
+    <meta name="description" content="Mini-jogos de movimento que você joga com o corpo na frente da câmera." />
+    <meta property="og:title" content="Movemove — Mexa o corpo!" />
+    <meta property="og:description" content="Mini-jogos de movimento que você joga com o corpo na frente da câmera." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icons/icon-512.png" />
+    <meta property="og:url" content="http://137.131.157.30/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Movemove — Mexa o corpo!" />
+    <meta name="twitter:description" content="Mini-jogos de movimento que você joga com o corpo na frente da câmera." />
+    <meta name="twitter:image" content="/icons/icon-512.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,7 +24,7 @@
   </head>
   <body>
     <div id="app">
-      <video id="video" playsinline muted hidden></video>
+      <video id="video" playsinline muted style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;top:0;left:0;z-index:-1"></video>
       <canvas id="overlay" hidden></canvas>
       <div id="game"></div>
       <div id="camera-preview" class="hidden"></div>

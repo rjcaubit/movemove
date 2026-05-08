@@ -47,18 +47,25 @@ export class GameOver extends Phaser.Scene {
       }).setOrigin(0.5);
     }
 
-    const btn1 = this.add.text(width / 2 - 110, height - 70, strings.gameOver.playAgain, {
+    const btn1 = this.add.text(width / 2 - 180, height - 70, strings.gameOver.playAgain, {
       fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#0b0d10',
       backgroundColor: '#4cd964', padding: { x: 18, y: 10 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     btn1.setName('btn-play-again');
     btn1.on('pointerup', () => this.scene.start('Play'));
 
-    const btn2 = this.add.text(width / 2 + 110, height - 70, strings.gameOver.recalibrate, {
+    const btn2 = this.add.text(width / 2, height - 70, strings.gameOver.recalibrate, {
       fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#f5f5f5',
       backgroundColor: '#8a8d92', padding: { x: 18, y: 10 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     btn2.setName('btn-recalibrate');
     btn2.on('pointerup', () => this.scene.start('Calibration'));
+
+    const btn3 = this.add.text(width / 2 + 180, height - 70, strings.miniGames.hubBack, {
+      fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#0b0d10',
+      backgroundColor: '#ffd60a', padding: { x: 18, y: 10 },
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    btn3.setName('btn-hub');
+    btn3.on('pointerup', () => this.scene.start('MiniGamesHub'));
   }
 }

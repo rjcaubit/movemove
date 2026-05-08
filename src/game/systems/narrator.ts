@@ -5,24 +5,10 @@ export class Narrator {
   private enabled: boolean;
   private lastSpeakAt = 0;
   private cooldownMs = 3000;
-  private voice: SpeechSynthesisVoice | null = null;
 
   constructor(audioBus: AudioBus | null, enabled = true) {
     this.audioBus = audioBus;
     this.enabled = enabled;
-    this.detectVoice();
-  }
-
-  private detectVoice(): void {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    const pick = (): void => {
-      const voices = window.speechSynthesis.getVoices();
-      this.voice = voices.find((v) => v.lang.startsWith('pt')) ?? voices[0] ?? null;
-    };
-    pick();
-    if (!this.voice && window.speechSynthesis.addEventListener) {
-      window.speechSynthesis.addEventListener('voiceschanged', pick, { once: true });
-    }
   }
 
   speak(text: string, priority = 1): void {
@@ -41,7 +27,6 @@ export class Narrator {
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'pt-BR';
-      if (this.voice) utter.voice = this.voice;
       utter.rate = 1.05;
       utter.pitch = 1.1;
       if (this.audioBus) {
@@ -59,7 +44,7 @@ export class Narrator {
   private static showCaption(text: string): void {
     if (Narrator.captionEl == null) {
       const el = document.createElement('div');
-      el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#fff;padding:8px 14px;border-radius:8px;font:600 16px system-ui;z-index:200;max-width:80vw;text-align:center;';
+      el.style.cssText = 'position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(40,40,40,0.55);color:#e8e8e8;border:1px solid #888;padding:3px 9px;border-radius:6px;font:500 12px system-ui;z-index:200;max-width:70vw;text-align:center;';
       document.body.appendChild(el);
       Narrator.captionEl = el;
     }

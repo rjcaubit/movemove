@@ -32,6 +32,60 @@ export class Loading extends Phaser.Scene {
   private async bootDetector(): Promise<void> {
     const refs = getRefs(this);
     try {
+      // Pré-carregar sprites de personagens (Kenney CC0)
+      const SPRITES: [string, string][] = [
+        ['player_walk',       '/assets/sprites/player_walk.png'],
+        ['player_run_b',      '/assets/sprites/player_run_b.png'],
+        ['player_jump',       '/assets/sprites/player_jump.png'],
+        ['player_duck',       '/assets/sprites/player_duck.png'],
+        ['player_stand',      '/assets/sprites/player_stand.png'],
+        ['player_hurt',       '/assets/sprites/player_hurt.png'],
+        ['robot_kenney',      '/assets/sprites/robot_kenney.png'],
+        ['zombie_kenney',     '/assets/sprites/zombie_kenney.png'],
+        ['npc_runner_kenney', '/assets/sprites/npc_runner_kenney.png'],
+        ['puncher_kenney',    '/assets/sprites/puncher_kenney.png'],
+        ['animal_kenney',     '/assets/sprites/animal_kenney.png'],
+        ['enemy_a',           '/assets/sprites/enemy_a.png'],
+        ['enemy_b',           '/assets/sprites/enemy_b.png'],
+        ['enemy_c',           '/assets/sprites/enemy_c.png'],
+        ['enemy_d',           '/assets/sprites/enemy_d.png'],
+        ['ghost_kenney',      '/assets/sprites/ghost_kenney.png'],
+        ['bg_floor_a',        '/assets/sprites/bg_floor_a.png'],
+        ['bg_floor_b',        '/assets/sprites/bg_floor_b.png'],
+        ['bg_floor_c',        '/assets/sprites/bg_floor_c.png'],
+        ['bg_purple_a',       '/assets/sprites/bg_purple_a.png'],
+        ['bg_purple_b',       '/assets/sprites/bg_purple_b.png'],
+        ['bg_purple_c',       '/assets/sprites/bg_purple_c.png'],
+      ];
+      let needsLoad = false;
+      for (const [key, path] of SPRITES) {
+        if (!this.textures.exists(key)) { this.load.image(key, path); needsLoad = true; }
+      }
+      if (needsLoad) {
+        await new Promise<void>(resolve => {
+          this.load.once('complete', resolve);
+          this.load.once('loaderror', resolve);
+          this.load.start();
+        });
+      }
+
+      // Músicas do DanceDance (lazy: só carrega chaves não-cached)
+      const DANCE_TRACKS = ['You-Up-1', 'Twist2', 'twist', 'lonely_l'];
+      let needsAudioLoad = false;
+      for (const key of DANCE_TRACKS) {
+        if (!this.cache.audio.exists(`dance_${key}`)) {
+          this.load.audio(`dance_${key}`, `/assets/audio/${key}.mp3`);
+          needsAudioLoad = true;
+        }
+      }
+      if (needsAudioLoad) {
+        await new Promise<void>(resolve => {
+          this.load.once('complete', resolve);
+          this.load.once('loaderror', resolve);
+          this.load.start();
+        });
+      }
+
       // Carregar audioSprite de SFX em background (gated — não bloqueia se ausente)
       if (!this.cache.audio.exists('sfx')) {
         this.load.audioSprite('sfx',

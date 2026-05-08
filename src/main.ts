@@ -1,5 +1,23 @@
 import { startApp } from './game/orchestrator.ts';
+import { GAME_CONFIG } from './game/config.ts';
 import type { Baseline, GameEvent, CadenceIntensity } from './pose/types.ts';
+
+// Modo retrato: auto-detecta pelo viewport. ?landscape=1 força paisagem mesmo em
+// celular vertical (override pra desenvolvimento).
+try {
+  const params = new URLSearchParams(window.location.search);
+  const forceLandscape = params.get('landscape') === '1';
+  const forcePortrait = params.get('portrait') === '1';
+  const isPortraitViewport = window.innerHeight > window.innerWidth;
+  const usePortrait = forcePortrait || (!forceLandscape && isPortraitViewport);
+  if (usePortrait) {
+    // Canvas combina com o aspect-ratio real do viewport → FIT vira 1:1, tela cheia
+    const w = 720;
+    const h = Math.round(w * (window.innerHeight / window.innerWidth));
+    (GAME_CONFIG as { width: number; height: number }).width = w;
+    (GAME_CONFIG as { width: number; height: number }).height = h;
+  }
+} catch { /* ignore */ }
 
 const game = startApp();
 

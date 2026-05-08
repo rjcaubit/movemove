@@ -14,6 +14,7 @@ export class PoseDetector {
   private stream: MediaStream | null = null;
   private rafId: number | null = null;
   private frameCallbacks = new Set<(frame: PoseFrame) => void>();
+  private frame2Callbacks = new Set<(frame: PoseFrame) => void>();
 
   async loadModel(onProgress?: (msg: string) => void): Promise<void> {
     onProgress?.(strings.loading.statusInitWasm);
@@ -42,11 +43,19 @@ export class PoseDetector {
         'SecurityError',
       );
     }
+    // Detecta modo retrato pra trocar dimensões e pedir aspect portrait do device
+    const portrait = (() => {
+      try { return new URLSearchParams(window.location.search).get('portrait') === '1'; }
+      catch { return false; }
+    })();
+    const w = portrait ? POSE_CONFIG.videoIdealHeight : POSE_CONFIG.videoIdealWidth;
+    const h = portrait ? POSE_CONFIG.videoIdealWidth : POSE_CONFIG.videoIdealHeight;
     this.stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'user',
-        width: { ideal: POSE_CONFIG.videoIdealWidth },
-        height: { ideal: POSE_CONFIG.videoIdealHeight },
+        width: { ideal: w },
+        height: { ideal: h },
+        aspectRatio: { ideal: w / h },
       },
       audio: false,
     });
@@ -70,10 +79,10 @@ export class PoseDetector {
         lastTs = video.currentTime;
         try {
           const result = this.landmarker!.detectForVideo(video, ts);
-          const frame = this.toFrame(result, ts);
-          if (frame) {
-            for (const cb of this.frameCallbacks) cb(frame);
-          }
+          const frame = this.toFrameAt(result, ts, 0);
+          if (frame) for (const cb of this.frameCallbacks) cb(frame);
+          const frame2 = this.toFrameAt(result, ts, 1);
+          if (frame2) for (const cb of this.frame2Callbacks) cb(frame2);
         } catch (err) {
           // Loop não pode morrer por uma falha pontual de inferência (ex: WASM
           // momentaneamente indisponível, perda de contexto GPU). Logar e seguir;
@@ -101,13 +110,14 @@ export class PoseDetector {
     return () => this.frameCallbacks.delete(cb);
   }
 
-  private toFrame(result: PoseLandmarkerResult, ts: number): PoseFrame | null {
-    const lm = result.landmarks[0];
+  onFrame2(cb: (frame: PoseFrame) => void): () => void {
+    this.frame2Callbacks.add(cb);
+    return () => this.frame2Callbacks.delete(cb);
+  }
+
+  private toFrameAt(result: PoseLandmarkerResult, ts: number, idx: number): PoseFrame | null {
+    const lm = result.landmarks[idx];
     if (!lm || lm.length === 0) return null;
-    // Câmera frontal é mostrada espelhada (selfie): quando o usuário se mexe pra
-    // direita, espera ver sua imagem ir pra direita também. Espelhamos x aqui
-    // pra que TODOS os consumidores (events, calibration, overlay) usem coords
-    // alinhadas com a percepção do usuário.
     const keypoints: Keypoint[] = lm.map((p) => ({
       x: 1 - p.x,
       y: p.y,
@@ -118,10 +128,7 @@ export class PoseDetector {
     let n = 0;
     for (const i of RELEVANT_KP_INDICES) {
       const v = keypoints[i]?.visibility;
-      if (typeof v === 'number') {
-        sum += v;
-        n++;
-      }
+      if (typeof v === 'number') { sum += v; n++; }
     }
     const confidence = n > 0 ? sum / n : 0;
     return { keypoints, confidence, timestamp: ts };

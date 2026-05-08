@@ -11,7 +11,20 @@ const KEYS = {
   narratorEnabled: 'movemove.narrator.enabled',
   captions: 'movemove.narrator.captions',
   age: 'movemove.ageGroup',
+  danceSpawnSec: 'movemove.dance.spawnSec',
 };
+
+export const DANCE_SPAWN_DEFAULT = 3;
+export const DANCE_SPAWN_MIN = 2;
+export const DANCE_SPAWN_MAX = 10;
+
+export function getDanceSpawnMs(): number {
+  try {
+    const v = Number(localStorage.getItem(KEYS.danceSpawnSec));
+    if (Number.isFinite(v) && v >= DANCE_SPAWN_MIN && v <= DANCE_SPAWN_MAX) return v * 1000;
+  } catch { /* ignore */ }
+  return DANCE_SPAWN_DEFAULT * 1000;
+}
 
 export class Settings extends Phaser.Scene {
   constructor() { super('Settings'); }
@@ -32,7 +45,13 @@ export class Settings extends Phaser.Scene {
     this.makeToggle(width / 2, y, strings.settings.narratorOn, KEYS.narratorEnabled, true); y += 50;
     this.makeToggle(width / 2, y, strings.settings.captionsOn, KEYS.captions, false); y += 80;
 
-    this.makeAgeRadio(width / 2, y);
+    this.makeAgeRadio(width / 2, y); y += 60;
+
+    this.makeStepperSlider(width / 2, y, strings.settings.danceSpeed,
+      KEYS.danceSpawnSec, DANCE_SPAWN_DEFAULT, DANCE_SPAWN_MIN, DANCE_SPAWN_MAX, 1, 's');
+    this.add.text(width / 2 - 200, y + 20, strings.settings.danceSpeedHint, {
+      fontFamily: 'VT323, ui-monospace', fontSize: '11px', color: '#8a8d92',
+    }).setOrigin(0, 0.5);
 
     const back = this.add.text(width / 2, height - 60, strings.settings.back, {
       fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#0b0d10',
@@ -62,6 +81,39 @@ export class Settings extends Phaser.Scene {
     };
     minus.on('pointerup', () => apply(-10));
     plus.on('pointerup', () => apply(10));
+  }
+
+  private makeStepperSlider(
+    x: number, y: number, label: string, key: string,
+    defaultVal: number, min: number, max: number, step: number, unit = '',
+  ): void {
+    const cur = (() => {
+      try {
+        const v = Number(localStorage.getItem(key));
+        if (Number.isFinite(v) && v >= min && v <= max) return v;
+      } catch { /* ignore */ }
+      return defaultVal;
+    })();
+    this.add.text(x - 200, y, label, { fontFamily: 'VT323, ui-monospace', fontSize: '16px', color: '#f5f5f5' }).setOrigin(0, 0.5);
+    const valueEl = this.add.text(x + 200, y, `${cur}${unit}`, {
+      fontFamily: 'VT323, ui-monospace', fontSize: '14px', color: '#ffd60a',
+    }).setOrigin(1, 0.5);
+    const minus = this.add.text(x + 80, y, '−', {
+      fontFamily: 'VT323, ui-monospace', fontSize: '24px', color: '#0b0d10',
+      backgroundColor: '#4cd964', padding: { x: 10, y: 2 },
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    const plus = this.add.text(x + 140, y, '+', {
+      fontFamily: 'VT323, ui-monospace', fontSize: '24px', color: '#0b0d10',
+      backgroundColor: '#4cd964', padding: { x: 10, y: 2 },
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    let val = cur;
+    const apply = (delta: number): void => {
+      val = Math.max(min, Math.min(max, val + delta));
+      try { localStorage.setItem(key, String(val)); } catch { /* ignore */ }
+      valueEl.setText(`${val}${unit}`);
+    };
+    minus.on('pointerup', () => apply(-step));
+    plus.on('pointerup', () => apply(step));
   }
 
   private makeToggle(x: number, y: number, label: string, key: string, defaultVal: boolean): void {

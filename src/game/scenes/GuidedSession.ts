@@ -3,6 +3,8 @@ import { GAME_CONFIG } from '../config.ts';
 import { strings } from '../../i18n/strings.ts';
 import { getRefs } from '../orchestrator.ts';
 import { CameraBackdrop } from '../ui/cameraBackdrop.ts';
+import { addBackButton } from '../ui/backButton.ts';
+import { getRng } from '../systems/rng.ts';
 import { Narrator } from '../systems/narrator.ts';
 import { DemoFigure, ANIMATORS, type Animator, NEUTRAL_POSE } from '../ui/demoFigure.ts';
 import { DETECTORS, type RepDetector } from '../systems/exerciseRepDetectors.ts';
@@ -16,8 +18,19 @@ interface Exercise {
   detector: () => RepDetector;
 }
 
-const EXERCISE_DURATION_MS = 45000;
+const EXERCISE_DURATION_DEFAULT_MS = 45000;
+const EXERCISE_DURATION_MIN_MS = 22000;  // limite inferior pra modo 5 min
 const REST_DURATION_MS = 5000;
+const DEFAULT_TOTAL_MS = 7 * 60 * 1000;
+
+function shuffle<T>(arr: T[], rng: () => number): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 function buildExercises(): Exercise[] {
   const m = strings.miniGames.guided;
@@ -58,14 +71,19 @@ export class GuidedSession extends Phaser.Scene {
   private currentDetector: RepDetector | null = null;
   private currentReps = 0;
   private repsByExercise: number[] = [];
+  private exerciseMs = EXERCISE_DURATION_DEFAULT_MS;
+  private targetTotalMs = DEFAULT_TOTAL_MS;
   private unsubFrame: (() => void) | null = null;
 
   constructor() { super('GuidedSession'); }
 
-  create(): void {
+  create(data?: { totalMs?: number }): void {
     const { width, height } = GAME_CONFIG;
     this.cameras.main.setBackgroundColor(0x0a1220);
-    this.exercises = buildExercises();
+    this.targetTotalMs = data?.totalMs ?? DEFAULT_TOTAL_MS;
+    const planned = this.planExercises(this.targetTotalMs);
+    this.exercises = planned.list;
+    this.exerciseMs = planned.exerciseMs;
     this.idx = 0;
     this.phase = 'rest';
     this.phaseStartedAt = performance.now();
@@ -121,11 +139,7 @@ export class GuidedSession extends Phaser.Scene {
       fontFamily: 'VT323, ui-monospace', fontSize: '12px', color: '#8a8d92',
     }).setOrigin(0.5);
 
-    const skip = this.add.text(width - 20, height - 20, strings.miniGames.hubBack, {
-      fontFamily: 'VT323, ui-monospace', fontSize: '14px', color: '#f5f5f5',
-      backgroundColor: 'rgba(255,255,255,0.1)', padding: { x: 10, y: 4 },
-    }).setOrigin(1, 1).setInteractive({ useHandCursor: true });
-    skip.on('pointerup', () => this.scene.start('MiniGamesHub'));
+    addBackButton(this);
 
     this.unsubFrame = refs.onSmoothedFrame((frame: PoseFrame) => this.handleFrame(frame));
 
@@ -147,7 +161,7 @@ export class GuidedSession extends Phaser.Scene {
     if (this.phase === 'done') return;
     const now = performance.now();
     const elapsed = now - this.phaseStartedAt;
-    const total = this.phase === 'exercise' ? EXERCISE_DURATION_MS : REST_DURATION_MS;
+    const total = this.phase === 'exercise' ? this.exerciseMs : REST_DURATION_MS;
     const remaining = Math.max(0, Math.ceil((total - elapsed) / 1000));
     this.timerEl.setText(String(remaining));
 
@@ -172,6 +186,37 @@ export class GuidedSession extends Phaser.Scene {
     }
 
     if (elapsed >= total) this.advance();
+  }
+
+  /**
+   * Calcula nº de exercícios e duração de cada com base no tempo total alvo.
+   * - 5 min: mantém 9 exercícios, reduz duração até o mínimo
+   * - 7 min: 9 exercícios na duração padrão (45s)
+   * - 10/15 min: padrão de duração, repete a lista até preencher
+   */
+  private planExercises(totalMs: number): { list: Exercise[]; exerciseMs: number } {
+    const rng = getRng();
+    const base = shuffle(buildExercises(), rng);
+    const baseN = base.length; // 9
+    const standardCycle = EXERCISE_DURATION_DEFAULT_MS + REST_DURATION_MS;
+    const standardTotal = baseN * standardCycle; // 450_000 = 7min
+
+    if (totalMs <= standardTotal + 30_000) {
+      // ≤ ~7.5min: mantém n exercícios, ajusta duração
+      const exerciseMs = Math.max(
+        EXERCISE_DURATION_MIN_MS,
+        Math.round((totalMs - baseN * REST_DURATION_MS) / baseN),
+      );
+      return { list: base, exerciseMs };
+    }
+    // > 7min: duração padrão, repete pra encher
+    const cycle = standardCycle;
+    const n = Math.max(baseN, Math.round(totalMs / cycle));
+    const list: Exercise[] = [...base];
+    while (list.length < n) {
+      list.push(...shuffle(base, rng));
+    }
+    return { list: list.slice(0, n), exerciseMs: EXERCISE_DURATION_DEFAULT_MS };
   }
 
   private advance(): void {

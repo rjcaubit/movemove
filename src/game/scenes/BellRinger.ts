@@ -6,14 +6,18 @@ import { handAt } from '../../pose/spatialQueries.ts';
 import { getRng } from '../systems/rng.ts';
 import { getRefs } from '../orchestrator.ts';
 import { CameraBackdrop } from '../ui/cameraBackdrop.ts';
+import { addBackButton } from '../ui/backButton.ts';
+import { Pill, addTitleBanner, addThemedFrame } from '../ui/hudStyle.ts';
 import { Narrator } from '../systems/narrator.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
 import type { PoseFrame } from '../../pose/types.ts';
 
 const DURATION_MS = 75000;
-const BPM = 100;
-const BEAT_MS = 60000 / BPM;
-const WINDOW_MS = 600;
+const BASE_BEAT_MS = 1000;
+const MIN_BEAT_MS = 450;
+const MAX_BEAT_MS = 1600;
+const BEAT_STEP_MS = 70;
+const WINDOW_MS = 700;
 const INTRO_MS = 4000;
 
 const BLUE = 0x0a84ff;
@@ -34,14 +38,16 @@ export class BellRinger extends Phaser.Scene {
   private rightColor: number = RED;
   private introOverlay: Phaser.GameObjects.Container | null = null;
   private introCountdownEl: Phaser.GameObjects.Text | null = null;
-  private scoreEl!: Phaser.GameObjects.Text;
-  private comboEl!: Phaser.GameObjects.Text;
-  private timeEl!: Phaser.GameObjects.Text;
+  private scorePill!: Pill;
+  private comboPill!: Pill;
+  private timePill!: Pill;
   private unsubFrame: (() => void) | null = null;
   private narrator!: Narrator;
   private session: string[] = [];
   private rng: () => number = Math.random;
   private backdrop: CameraBackdrop | null = null;
+  private currentBeatMs = BASE_BEAT_MS;
+  private recentReactions: number[] = [];
 
   constructor() { super('BellRinger'); }
 
@@ -60,22 +66,26 @@ export class BellRinger extends Phaser.Scene {
     this.introStartedAt = performance.now();
     this.startedAt = 0;
     this.nextBeatAt = 0;
+    this.currentBeatMs = BASE_BEAT_MS;
+    this.recentReactions = [];
 
-    this.add.text(width / 2, 30, strings.miniGames.bellTitle, {
-      fontFamily: 'VT323, ui-monospace', fontSize: '24px', color: '#ffd60a', fontStyle: 'bold',
-    }).setOrigin(0.5);
-    this.scoreEl = this.add.text(20, 20, `${strings.miniGames.score}: 0`, {
-      fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#f5f5f5', stroke: '#000', strokeThickness: 3,
+    addThemedFrame(this, 'bell');
+    addTitleBanner(this, width / 2, 50, strings.miniGames.bellTitle, 0xffae0a, 0xffffff);
+    this.scorePill = new Pill(this, 130, 50, '0', {
+      width: 200, fill: 0xff453a, stroke: 0xffffff,
+      textColor: '#fff8d8', fontSize: 28, icon: '🔔', origin: [0.5, 0.5],
     });
-    this.comboEl = this.add.text(20, 50, `${strings.miniGames.combo}: 0`, {
-      fontFamily: 'VT323, ui-monospace', fontSize: '16px', color: '#0a84ff', stroke: '#000', strokeThickness: 3,
+    this.comboPill = new Pill(this, 130, 110, '0', {
+      width: 160, height: 38, fill: 0x0a84ff, stroke: 0xffffff,
+      textColor: '#ffffff', fontSize: 22, icon: '⚡', origin: [0.5, 0.5],
     });
-    this.timeEl = this.add.text(width - 20, 20, '75s', {
-      fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#ffd60a', stroke: '#000', strokeThickness: 3,
-    }).setOrigin(1, 0);
-    this.add.text(width / 2, 64, this.legendText(), {
+    this.timePill = new Pill(this, width - 130, 50, '75s', {
+      width: 180, fill: 0xffd60a, stroke: 0xffffff,
+      textColor: '#ffffff', fontSize: 28, icon: '⏱', origin: [0.5, 0.5],
+    });
+    this.add.text(width / 2, 110, this.legendText(), {
       fontFamily: 'VT323, ui-monospace', fontSize: '14px', color: '#f5f5f5', stroke: '#000', strokeThickness: 2,
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(50);
 
     const refs = getRefs(this);
     this.backdrop = new CameraBackdrop(this, refs.video, refs.onSmoothedFrame);
@@ -84,6 +94,7 @@ export class BellRinger extends Phaser.Scene {
 
     this.buildIntroOverlay();
     this.narrator.speak(this.introNarration(), 2);
+    addBackButton(this);
   }
 
   private colorName(c: number): string {
@@ -136,13 +147,15 @@ export class BellRinger extends Phaser.Scene {
       if (!bell.alive) continue;
       const target = { x: bell.normX, y: bell.normY, r: 0.10 };
       if (handAt(frame, bell.hand, target)) {
+        const reaction = performance.now() - bell.bornAtMs;
         bell.ring(this, () => {/* destroyed */});
         this.score += 10;
         this.combo += 1;
         if (this.combo > this.bestCombo) this.bestCombo = this.combo;
-        this.scoreEl.setText(`${strings.miniGames.score}: ${this.score}`);
-        this.comboEl.setText(`${strings.miniGames.combo}: ${this.combo}`);
+        this.scorePill.setText(String(this.score));
+        this.comboPill.setText(String(this.combo));
         if (this.combo === 5 || this.combo % 10 === 0) this.narrator.speak(narratorLines.bellOnBeat(), 1);
+        this.adaptPaceOnHit(reaction);
       }
     }
   }
@@ -161,10 +174,10 @@ export class BellRinger extends Phaser.Scene {
 
     const elapsed = now - this.startedAt;
     const remaining = Math.max(0, Math.ceil((DURATION_MS - elapsed) / 1000));
-    this.timeEl.setText(`${remaining}s`);
+    this.timePill.setText(`${remaining}s`);
 
     if (now >= this.nextBeatAt && elapsed < DURATION_MS) {
-      this.nextBeatAt += BEAT_MS;
+      this.nextBeatAt += this.currentBeatMs;
       const hand: 'L' | 'R' = this.rng() < 0.5 ? 'L' : 'R';
       const x = 0.2 + this.rng() * 0.6;
       const y = 0.35 + this.rng() * 0.25;
@@ -176,12 +189,39 @@ export class BellRinger extends Phaser.Scene {
       if (b.alive && b.isExpired()) {
         b.destroy();
         this.combo = 0;
-        this.comboEl.setText(`${strings.miniGames.combo}: 0`);
+        this.comboPill.setText('0');
+        this.adaptPaceOnMiss();
       }
     }
     this.bells = this.bells.filter((b) => b.alive);
 
-    if (elapsed >= DURATION_MS) this.finish();
+    if (elapsed >= DURATION_MS) { this.finish(); return; }
+
+    if (this.backdrop) {
+      const toHex = (c: number) => '#' + c.toString(16).padStart(6, '0');
+      const activeHands = new Set(this.bells.filter((b) => b.alive).map((b) => b.hand));
+      this.backdrop.handGlows = [
+        { idx: 15, color: toHex(this.leftColor),  alpha: activeHands.has('L') ? 1.0 : 0.28 },
+        { idx: 16, color: toHex(this.rightColor), alpha: activeHands.has('R') ? 1.0 : 0.28 },
+      ];
+    }
+  }
+
+  private adaptPaceOnHit(reactionMs: number): void {
+    this.recentReactions.push(reactionMs);
+    if (this.recentReactions.length > 4) this.recentReactions.shift();
+    if (this.recentReactions.length < 3) return;
+    const avg = this.recentReactions.reduce((s, v) => s + v, 0) / this.recentReactions.length;
+    if (avg < WINDOW_MS * 0.45) {
+      this.currentBeatMs = Math.max(MIN_BEAT_MS, this.currentBeatMs - BEAT_STEP_MS);
+    } else if (avg > WINDOW_MS * 0.75) {
+      this.currentBeatMs = Math.min(MAX_BEAT_MS, this.currentBeatMs + BEAT_STEP_MS);
+    }
+  }
+
+  private adaptPaceOnMiss(): void {
+    this.currentBeatMs = Math.min(MAX_BEAT_MS, this.currentBeatMs + BEAT_STEP_MS * 2);
+    this.recentReactions = [];
   }
 
   private finish(): void {

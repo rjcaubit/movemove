@@ -27,6 +27,7 @@
   "dependencies": {
     "@lingui/core": "^4.14.1",
     "@mediapipe/tasks-vision": "^0.10.20",
+    "@tonejs/midi": "^2.0.28",
     "idb-keyval": "^6.2.2",
     "phaser": "^4.0.0"
   }

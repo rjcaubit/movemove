@@ -1,0 +1,27 @@
+services:
+  frontend:
+    build: .
+    container_name: movemove-frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
+    networks:
+      - movemove
+
+  # Backend — descomente quando estiver pronto
+  # backend:
+  #   build: ./backend
+  #   container_name: movemove-backend
+  #   expose:
+  #     - "3000"
+  #   environment:
+  #     - NODE_ENV=production
+  #     - DATABASE_URL=${DATABASE_URL}
+  #   restart: unless-stopped
+  #   networks:
+  #     - movemove
+
+networks:
+  movemove:
+    driver: bridge

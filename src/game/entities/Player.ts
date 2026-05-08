@@ -1,92 +1,98 @@
 import * as Phaser from 'phaser';
 import { GAME_CONFIG } from '../config.ts';
-import { laneToX } from '../systems/pseudo3d.ts';
 import type { Lane } from '../../pose/types.ts';
 
-const C = GAME_CONFIG;
+const F = GAME_CONFIG.falling;
+
+function laneX(lane: Lane): number { return F.laneXs[lane + 1]; }
 
 type PlayerState = 'running' | 'jumping' | 'ducking';
 
 export class Player {
-  readonly sprite: Phaser.GameObjects.Sprite;
-  private lane: Lane = 0;
-  private state: PlayerState = 'running';
-  private runFrame = 0;
-  private runFrameAccum = 0;
-  private scene: Phaser.Scene;
+  readonly sprite:   Phaser.GameObjects.Sprite;
+  private state:     PlayerState = 'running';
+  private lane:      Lane = 0;
+  private jumpOffset = 0;
+  private runFrame   = 0;
+  private runAccum   = 0;
+  private scene:     Phaser.Scene;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.sprite = scene.add.sprite(laneToX(0, 0), C.playerY, 'player_idle')
-      .setOrigin(0.5, 1).setScale(2.5).setDepth(10);
+    const key = scene.textures.exists('player_walk') ? 'player_walk' : 'player_run_a';
+    this.sprite = scene.add.sprite(laneX(0), F.groundY, key)
+      .setOrigin(0.5, 1).setDepth(10).setDisplaySize(F.playerW, F.playerH);
   }
 
-  update(dtSec: number): void {
+  update(dt: number): void {
     if (this.state === 'running') {
-      this.runFrameAccum += dtSec;
-      if (this.runFrameAccum >= 0.12) {
-        this.runFrameAccum = 0;
-        this.runFrame = (this.runFrame + 1) % 2;
-        this.sprite.setTexture(this.runFrame === 0 ? 'player_run_a' : 'player_run_b');
+      this.runAccum += dt;
+      if (this.runAccum >= 0.14) {
+        this.runAccum = 0;
+        this.runFrame = 1 - this.runFrame;
+        const k0 = this.scene.textures.exists('player_walk')  ? 'player_walk'  : 'player_run_a';
+        const k1 = this.scene.textures.exists('player_stand') ? 'player_stand' : 'player_run_b';
+        this.sprite.setTexture(this.runFrame === 0 ? k0 : k1);
       }
     }
   }
 
-  getLane(): Lane { return this.lane; }
+  getLane():  Lane        { return this.lane; }
   getState(): PlayerState { return this.state; }
+
+  getTop(): number {
+    if (this.state === 'ducking') return F.groundY - F.playerDuckH;
+    return F.groundY - F.playerH + this.jumpOffset;
+  }
+  getBottom(): number { return F.groundY + this.jumpOffset; }
 
   setLane(lane: Lane): void {
     if (this.lane === lane) return;
     this.lane = lane;
     this.scene.tweens.add({
       targets: this.sprite,
-      x: laneToX(lane, 0),
-      duration: 80,
+      x: laneX(lane),
+      duration: F.laneChangeDurMs,
       ease: 'Sine.easeOut',
-    });
-    this.scene.tweens.add({
-      targets: this.sprite,
-      angle: lane === -1 ? -C.playerLaneTiltDeg : lane === 1 ? C.playerLaneTiltDeg : 0,
-      duration: C.playerLaneTiltDurationMs,
-      ease: 'Sine.easeOut',
-      yoyo: true,
-      onComplete: () => this.sprite.setAngle(0),
     });
   }
 
   jump(): void {
     if (this.state !== 'running') return;
     this.state = 'jumping';
-    this.sprite.setTexture('player_jump');
-    if (this.scene.cache.audio.exists('snd_jump')) this.scene.sound.play('snd_jump');
+    const key = this.scene.textures.exists('player_jump') ? 'player_jump' : 'player_run_a';
+    this.sprite.setTexture(key).setDisplaySize(F.playerW, F.playerH);
     this.scene.tweens.add({
       targets: this.sprite,
-      y: C.playerY - C.playerJumpHeightPx,
-      duration: C.playerJumpDurationMs / 2,
+      y: F.groundY - F.jumpHeightPx,
+      duration: F.jumpDurMs / 2,
       ease: 'Sine.easeOut',
       yoyo: true,
+      onUpdate: () => { this.jumpOffset = this.sprite.y - F.groundY; },
       onComplete: () => {
         this.state = 'running';
-        this.sprite.setTexture('player_run_a');
+        this.jumpOffset = 0;
+        this.sprite.setY(F.groundY);
+        const k = this.scene.textures.exists('player_walk') ? 'player_walk' : 'player_run_a';
+        this.sprite.setTexture(k).setDisplaySize(F.playerW, F.playerH);
       },
     });
+    if (this.scene.cache.audio.exists('sfx')) {
+      (this.scene.sound as unknown as { playAudioSprite?: (k: string, m: string, cfg: object) => void })
+        .playAudioSprite?.('sfx', 'jump', { volume: 0.5 });
+    }
   }
 
   duck(): void {
     if (this.state !== 'running') return;
     this.state = 'ducking';
-    this.sprite.setTexture('player_duck');
-    this.scene.tweens.add({
-      targets: this.sprite,
-      scaleY: 1.5,
-      duration: C.playerDuckDurationMs / 2,
-      ease: 'Sine.easeOut',
-      yoyo: true,
-      onComplete: () => {
-        this.state = 'running';
-        this.sprite.setScale(2.5);
-        this.sprite.setTexture('player_run_a');
-      },
+    const key = this.scene.textures.exists('player_duck') ? 'player_duck' : 'player_run_a';
+    this.sprite.setTexture(key).setDisplaySize(F.playerW, F.playerDuckH).setY(F.groundY);
+    this.scene.time.delayedCall(F.duckDurMs, () => {
+      if (this.state !== 'ducking') return;
+      this.state = 'running';
+      const k = this.scene.textures.exists('player_walk') ? 'player_walk' : 'player_run_a';
+      this.sprite.setTexture(k).setDisplaySize(F.playerW, F.playerH).setY(F.groundY);
     });
   }
 

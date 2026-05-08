@@ -6,7 +6,7 @@ export function ensureTexture(
   key: string,
   w: number, h: number,
   color: number,
-  shape: 'rect' | 'tree' | 'coin' | 'log' | 'banner' | 'brick' | 'column' | 'laser' = 'rect',
+  shape: 'rect' | 'tree' | 'coin' | 'log' | 'banner' | 'brick' | 'column' | 'laser' | 'barrel' = 'rect',
 ): void {
   if (scene.textures.exists(key)) return;
   const g = scene.make.graphics({ x: 0, y: 0 });
@@ -100,6 +100,21 @@ export function ensureTexture(
     // Emissor direito
     g.fillStyle(0x333333, 1);
     g.fillRect(w * 0.92, h * 0.25, w * 0.08, h * 0.5);
+
+  } else if (shape === 'barrel') {
+    // Barril em pé: corpo arredondado + aros metálicos
+    const bx = w * 0.12, bw = w * 0.76;
+    g.fillStyle(color, 1);
+    g.fillRoundedRect(bx, 2, bw, h - 4, { tl: bw * 0.25, tr: bw * 0.25, bl: bw * 0.2, br: bw * 0.2 });
+    // Aros metálicos (3 faixas)
+    const bandColor = 0x555555;
+    for (const y of [h * 0.18, h * 0.50, h * 0.82]) {
+      g.fillStyle(bandColor, 1);
+      g.fillRect(bx - 2, y - 3, bw + 4, 6);
+    }
+    // Detalhe de grade no topo
+    g.fillStyle(0x333333, 0.5);
+    g.fillRect(bx + bw * 0.2, 6, bw * 0.6, 8);
 
   } else {
     g.fillStyle(color, 1);

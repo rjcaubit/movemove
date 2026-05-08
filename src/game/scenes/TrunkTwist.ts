@@ -5,6 +5,8 @@ import { TrunkTarget } from '../entities/TrunkTarget.ts';
 import { trunkRotationAngle } from '../../pose/spatialQueries.ts';
 import { getRefs } from '../orchestrator.ts';
 import { CameraBackdrop } from '../ui/cameraBackdrop.ts';
+import { addBackButton } from '../ui/backButton.ts';
+import { Pill, addTitleBanner, addThemedFrame } from '../ui/hudStyle.ts';
 import { Narrator } from '../systems/narrator.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
 import type { PoseFrame } from '../../pose/types.ts';
@@ -19,8 +21,8 @@ export class TrunkTwist extends Phaser.Scene {
   private score = 0;
   private startedAt = 0;
   private rotationStartedAt = 0;
-  private scoreEl!: Phaser.GameObjects.Text;
-  private timeEl!: Phaser.GameObjects.Text;
+  private scorePill!: Pill;
+  private timePill!: Pill;
   private unsubFrame: (() => void) | null = null;
   private narrator!: Narrator;
   private session: string[] = [];
@@ -34,15 +36,16 @@ export class TrunkTwist extends Phaser.Scene {
     this.session = data?.session ?? [];
     this.score = 0;
     this.startedAt = performance.now();
-    this.add.text(width / 2, 30, strings.miniGames.trunkTitle, {
-      fontFamily: 'VT323, ui-monospace', fontSize: '24px', color: '#bf5af2', fontStyle: 'bold',
-    }).setOrigin(0.5);
-    this.scoreEl = this.add.text(20, 20, `${strings.miniGames.score}: 0`, {
-      fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#f5f5f5', stroke: '#000', strokeThickness: 3,
+    addThemedFrame(this, 'trunk');
+    addTitleBanner(this, width / 2, 50, strings.miniGames.trunkTitle, 0xbf5af2, 0xffffff);
+    this.scorePill = new Pill(this, 130, 50, '0', {
+      width: 200, fill: 0xbf5af2, stroke: 0xffffff,
+      textColor: '#fff8d8', fontSize: 28, icon: '🌀', origin: [0.5, 0.5],
     });
-    this.timeEl = this.add.text(width - 20, 20, '90s', {
-      fontFamily: 'VT323, ui-monospace', fontSize: '20px', color: '#ffd60a', stroke: '#000', strokeThickness: 3,
-    }).setOrigin(1, 0);
+    this.timePill = new Pill(this, width - 130, 50, '90s', {
+      width: 180, fill: 0xffd60a, stroke: 0xffffff,
+      textColor: '#ffffff', fontSize: 28, icon: '⏱', origin: [0.5, 0.5],
+    });
 
     this.spawnNext();
 
@@ -50,6 +53,7 @@ export class TrunkTwist extends Phaser.Scene {
     this.backdrop = new CameraBackdrop(this, refs.video, refs.onSmoothedFrame);
     this.narrator = new Narrator(null, true);
     this.unsubFrame = refs.onSmoothedFrame((frame: PoseFrame) => this.handleFrame(frame));
+    addBackButton(this);
   }
 
   private spawnNext(): void {
@@ -63,7 +67,7 @@ export class TrunkTwist extends Phaser.Scene {
     const angle = trunkRotationAngle(frame);
     const deviation = ((angle + 540) % 360) - 180;
     let side: 'L' | 'R' | null = null;
-    if (Math.abs(deviation) > ROT_THRESHOLD_DEG) side = deviation > 0 ? 'L' : 'R';
+    if (Math.abs(deviation) > ROT_THRESHOLD_DEG) side = deviation > 0 ? 'R' : 'L';
     if (side === this.current.side) {
       if (this.rotationStartedAt === 0) this.rotationStartedAt = performance.now();
       else if (performance.now() - this.rotationStartedAt > SUSTAIN_MS) {
@@ -71,7 +75,7 @@ export class TrunkTwist extends Phaser.Scene {
         this.current.hit(this, () => {/* destroyed */});
         this.current = null;
         this.score += 1;
-        this.scoreEl.setText(`${strings.miniGames.score}: ${this.score}`);
+        this.scorePill.setText(String(this.score));
         if (this.score % 3 === 0) this.narrator.speak(narratorLines.trunkHit(hitSide), 1);
         this.nextSide = this.nextSide === 'L' ? 'R' : 'L';
         this.time.delayedCall(400, () => this.spawnNext());
@@ -84,7 +88,7 @@ export class TrunkTwist extends Phaser.Scene {
   update(): void {
     const elapsed = performance.now() - this.startedAt;
     const remaining = Math.max(0, Math.ceil((DURATION_MS - elapsed) / 1000));
-    this.timeEl.setText(`${remaining}s`);
+    this.timePill.setText(`${remaining}s`);
     if (elapsed >= DURATION_MS) this.finish();
   }
 

@@ -113,3 +113,7 @@ export const GAME_CONFIG = {
 } as const;
 
 export type GameConfig = typeof GAME_CONFIG;
+
+export function isPortrait(): boolean {
+  return GAME_CONFIG.height > GAME_CONFIG.width;
+}
