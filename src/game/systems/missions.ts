@@ -98,6 +98,7 @@ export class MissionSystem {
         case 'daily.chickenFlaps': delta = deltas.chickenFlaps ?? 0; break;
         case 'daily.chickenScratches': delta = deltas.chickenScratches ?? 0; break;
         case 'daily.danceMoves': delta = deltas.danceMoves ?? 0; break;
+        case 'daily.ninjaSlices': delta = deltas.ninjaSlices ?? 0; break;
       }
       if (delta > 0) {
         m.progress += delta;

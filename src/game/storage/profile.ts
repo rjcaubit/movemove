@@ -13,7 +13,8 @@ export type MissionProgressKey =
   | 'daily.trunkRotations'
   | 'daily.chickenFlaps'
   | 'daily.chickenScratches'
-  | 'daily.danceMoves';
+  | 'daily.danceMoves'
+  | 'daily.ninjaSlices';
 
 export interface MissionInstance {
   defId: string;

@@ -324,7 +324,7 @@ export class NinjaFruit extends Phaser.Scene {
     this.lives -= 1;
     this.livesText.setText(this.livesStr());
     this.cameras.main.shake(220, 0.018);
-    this.cameras.main.flash(180, 255, 80, 80);
+    this.cameras.main.flash(180, 255, 255, 255);
     this.narrator.speak(narratorLines.ninjaBomb(), 2);
     if (this.lives <= 0) this.finish();
     else if (this.lives === 1) this.narrator.speak(narratorLines.ninjaLastLife(), 2);
