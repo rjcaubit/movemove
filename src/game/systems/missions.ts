@@ -25,6 +25,7 @@ export interface MissionDeltas {
   danceMoves?: number;
   castorHits?: number;
   helicopterSeconds?: number;
+  ninjaSlices?: number;
   miniGameCompleted?: number;
 }
 

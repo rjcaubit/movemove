@@ -30,6 +30,11 @@ export const narratorLines = {
     lives === 2 ? pick([t('Ai! Ainda tem 2 vidas!'), t('Cuidado! 2 restantes.')]) :
     lives === 1 ? t('Última vida! Capricha nos pulos!') : t('Voa!'),
   helicopterSurvived: (): string => pick([t('60 segundos! Voo perfeito!'), t('Piloto campeão!'), t('Mandou muito bem!')]),
+  ninjaStart: (): string => pick([t('Corta as frutas! Cuidado com bombas!'), t('Vai, ninja!'), t('Mostra a katana!')]),
+  ninjaSlice: (): string => pick([t('Zás!'), t('Cortou!'), t('Tá ON!')]),
+  ninjaCombo: (n: number): string => `${n} ${t('combo!')}`,
+  ninjaBomb: (): string => pick([t('Era bomba! Cuidado!'), t('Boom! Tomou!'), t('Não corta as bombas!')]),
+  ninjaLastLife: (): string => pick([t('Última vida! Capricha!'), t('Só mais uma chance!')]),
   dancePerfect: (): string => pick([t('Perfeito!'), t('No tempo!'), t('Mandou bem!')]),
   danceCombo: (n: number): string => `${n} ${t('combo!')}`,
   guidedNext: (game: string): string => `${t('Próximo:')} ${game}`,
