@@ -126,5 +126,6 @@ export const CANOE_ROCK_SPAWN_MS      = 2200;   // ms entre spawns de pedra
 export const CANOE_METERS_PER_UNIT    = 50;     // 1 unidade normalizada = 50 metros (HUD)
 
 // ROWING DETECTOR
-export const ROWING_STROKE_THRESHOLD  = 0.25;   // velocidade mínima do pulso (coords norm/s)
+export const ROWING_STROKE_THRESHOLD  = 0.45;   // velocidade mínima do pulso (coords norm/s)
+export const ROWING_MIN_DISPLACEMENT  = 0.05;   // deslocamento mínimo na janela (5% da altura)
 export const ROWING_REFRACTORY_MS     = 350;    // ms de cooldown por lado após stroke

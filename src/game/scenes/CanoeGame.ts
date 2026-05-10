@@ -11,7 +11,7 @@ import {
   CANOE_MAX_SPEED, CANOE_STEER_AMOUNT, CANOE_LERP,
   CANOE_COLLISION_BRAKE, CANOE_ROCK_BASE_SPEED, CANOE_ROCK_SPAWN_MS,
   CANOE_METERS_PER_UNIT,
-  ROWING_STROKE_THRESHOLD, ROWING_REFRACTORY_MS,
+  ROWING_STROKE_THRESHOLD, ROWING_MIN_DISPLACEMENT, ROWING_REFRACTORY_MS,
 } from '../../tuning.ts';
 import { GAME_CONFIG } from '../config.ts';
 
@@ -345,6 +345,7 @@ export class CanoeGame extends Phaser.Scene {
 
     this.detector = new RowingDetector(
       ROWING_STROKE_THRESHOLD,
+      ROWING_MIN_DISPLACEMENT,
       ROWING_REFRACTORY_MS,
       (side) => this.onPunch(side),
     );
@@ -524,9 +525,10 @@ export class CanoeGame extends Phaser.Scene {
     const reasonLabel = (r: string | null): string => {
       if (!r) return '✓ pronto';
       switch (r) {
-        case 'cooldown': return '⏳ cooldown';
-        case 'speed':    return '🐢 lento';
-        default:         return r;
+        case 'cooldown':     return '⏳ cooldown';
+        case 'speed':        return '🐢 lento';
+        case 'displacement': return '📏 pouco mov';
+        default:             return r;
       }
     };
 
@@ -535,13 +537,13 @@ export class CanoeGame extends Phaser.Scene {
     const lastSide = d.lastPunch ?? '–';
 
     const lines = [
-      `THRESHOLD speed≥${ROWING_STROKE_THRESHOLD.toFixed(2)}   cooldown≥${ROWING_REFRACTORY_MS}ms`,
+      `speed≥${ROWING_STROKE_THRESHOLD.toFixed(2)}  disp≥${ROWING_MIN_DISPLACEMENT.toFixed(2)}  cool≥${ROWING_REFRACTORY_MS}ms`,
       ``,
-      `L  speed=${fmt(d.L.speed)}  cool=${Math.round(d.L.cooldownMs).toString().padStart(4)}ms  ${reasonLabel(d.L.lastReject)}`,
-      `R  speed=${fmt(d.R.speed)}  cool=${Math.round(d.R.cooldownMs).toString().padStart(4)}ms  ${reasonLabel(d.R.lastReject)}`,
+      `L  spd=${fmt(d.L.speed)}  disp=${fmt(d.L.displacement)}  ${reasonLabel(d.L.lastReject)}`,
+      `R  spd=${fmt(d.R.speed)}  disp=${fmt(d.R.displacement)}  ${reasonLabel(d.R.lastReject)}`,
       ``,
       `Último soco: ${lastSide}  (${sincePunch >= 0 ? sincePunch + 'ms atrás' : '—'})`,
-      `Mão E → DIREITA · Mão D → ESQUERDA · Ambas → CENTRO`,
+      `E→DIREITA · D→ESQUERDA · ambas→CENTRO`,
     ];
     this.debugText.setText(lines);
   }

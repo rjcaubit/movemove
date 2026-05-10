@@ -6,10 +6,11 @@ import { type PoseFrame } from '../../pose/types.ts';
 // Emite 'BOTH' quando ambos pulsos passam o threshold no mesmo push.
 
 export type PunchSide = 'L' | 'R' | 'BOTH';
-export type RejectReason = 'cooldown' | 'speed';
+export type RejectReason = 'cooldown' | 'speed' | 'displacement';
 
 export interface SideDebug {
   speed: number;
+  displacement: number;
   cooldownMs: number;
   lastReject: RejectReason | null;
 }
@@ -26,14 +27,15 @@ export class RowingDetector {
   private refractoryUntil: Record<'L' | 'R', number> = { L: 0, R: 0 };
 
   private debug: DetectorDebug = {
-    L: { speed: 0, cooldownMs: 0, lastReject: null },
-    R: { speed: 0, cooldownMs: 0, lastReject: null },
+    L: { speed: 0, displacement: 0, cooldownMs: 0, lastReject: null },
+    R: { speed: 0, displacement: 0, cooldownMs: 0, lastReject: null },
     lastPunch: null,
     lastPunchAt: 0,
   };
 
   constructor(
     private readonly speedThreshold: number,
+    private readonly minDisplacement: number,
     private readonly refractoryMs: number,
     private readonly onPunch: (side: PunchSide) => void,
   ) {}
@@ -44,9 +46,13 @@ export class RowingDetector {
 
     const speedL = this.tracker.speedNorm('L');
     const speedR = this.tracker.speedNorm('R');
+    const dispL  = this.tracker.totalDisplacement('L');
+    const dispR  = this.tracker.totalDisplacement('R');
 
-    const lFiring = speedL >= this.speedThreshold && now >= this.refractoryUntil.L;
-    const rFiring = speedR >= this.speedThreshold && now >= this.refractoryUntil.R;
+    const lReady = now >= this.refractoryUntil.L;
+    const rReady = now >= this.refractoryUntil.R;
+    const lFiring = lReady && speedL >= this.speedThreshold && dispL >= this.minDisplacement;
+    const rFiring = rReady && speedR >= this.speedThreshold && dispR >= this.minDisplacement;
 
     let punched: PunchSide | null = null;
     if (lFiring && rFiring) {
@@ -64,10 +70,12 @@ export class RowingDetector {
     // Atualizar debug snapshot ANTES do callback (callback pode ler)
     this.debug.L.speed = speedL;
     this.debug.R.speed = speedR;
+    this.debug.L.displacement = dispL;
+    this.debug.R.displacement = dispR;
     this.debug.L.cooldownMs = Math.max(0, this.refractoryUntil.L - now);
     this.debug.R.cooldownMs = Math.max(0, this.refractoryUntil.R - now);
-    this.debug.L.lastReject = lFiring ? null : (now < this.refractoryUntil.L ? 'cooldown' : 'speed');
-    this.debug.R.lastReject = rFiring ? null : (now < this.refractoryUntil.R ? 'cooldown' : 'speed');
+    this.debug.L.lastReject = this.classifyReject(lReady, speedL, dispL);
+    this.debug.R.lastReject = this.classifyReject(rReady, speedR, dispR);
 
     if (punched) {
       this.debug.lastPunch = punched;
@@ -80,12 +88,19 @@ export class RowingDetector {
     return this.debug;
   }
 
+  private classifyReject(ready: boolean, speed: number, disp: number): RejectReason | null {
+    if (!ready) return 'cooldown';
+    if (speed < this.speedThreshold) return 'speed';
+    if (disp < this.minDisplacement) return 'displacement';
+    return null;
+  }
+
   reset(): void {
     this.tracker.reset();
     this.refractoryUntil = { L: 0, R: 0 };
     this.debug = {
-      L: { speed: 0, cooldownMs: 0, lastReject: null },
-      R: { speed: 0, cooldownMs: 0, lastReject: null },
+      L: { speed: 0, displacement: 0, cooldownMs: 0, lastReject: null },
+      R: { speed: 0, displacement: 0, cooldownMs: 0, lastReject: null },
       lastPunch: null,
       lastPunchAt: 0,
     };
