@@ -118,7 +118,7 @@ export const CANOE_DURATION_MS        = 60_000;
 export const CANOE_SPEED_PER_STROKE   = 0.06;   // acréscimo normalizado por stroke
 export const CANOE_SPEED_DECAY        = 0.9;    // multiplica speed a cada segundo sem stroke
 export const CANOE_MAX_SPEED          = 0.4;    // max normalizado (0–1/s)
-export const CANOE_STEER_AMOUNT       = 0.12;   // fração de largura desviada por stroke
+export const CANOE_STEER_AMOUNT       = 0.045;  // fração de largura desviada por stroke
 export const CANOE_LERP               = 0.08;   // interpolação X por frame (0=lento, 1=imediato)
 export const CANOE_COLLISION_BRAKE    = 0.35;   // multiplica speed em colisão
 export const CANOE_ROCK_BASE_SPEED    = 0.0002; // fração de tela/ms, mínimo mesmo sem remar
