@@ -107,7 +107,8 @@ export class MiniGamesHub extends Phaser.Scene {
       const cardH = 160;
       const gap = 18;
       const totalH = CATEGORIES.length * cardH + (CATEGORIES.length - 1) * gap;
-      const startY = (height - totalH) / 2 - 30;
+      // Desce o bloco pra não colidir com o título do background ("ESCOLHA SEU MINI-JOGO")
+      const startY = (height - totalH) / 2 + 80;
       CATEGORIES.forEach((cat, i) => {
         this.makeCategoryCard(width / 2, startY + cardH / 2 + i * (cardH + gap), cardW, cardH, cat);
       });
@@ -117,7 +118,9 @@ export class MiniGamesHub extends Phaser.Scene {
       const gap = 24;
       const totalW = CATEGORIES.length * cardW + (CATEGORIES.length - 1) * gap;
       const startX = (width - totalW) / 2 + cardW / 2;
-      const cardY = height / 2 - 20;
+      // Mesma Y dos cards de jogo (renderCategoryGames usa height / 2 + 40),
+      // ficando abaixo do título "ESCOLHA SEU MINI-JOGO" do background.
+      const cardY = height / 2 + 60;
       CATEGORIES.forEach((cat, i) => {
         this.makeCategoryCard(startX + i * (cardW + gap), cardY, cardW, cardH, cat);
       });
