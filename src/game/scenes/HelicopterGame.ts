@@ -269,20 +269,19 @@ export class HelicopterGame extends Phaser.Scene {
   private updateDebugReadout(frame: PoseFrame): void {
     const refs = getRefs(this);
     const baseline = refs.eventDetector.getBaseline();
-    if (!baseline) {
-      this.debugReadout.setText('no baseline');
-      this.debugReadout.setColor('#ff6b6b');
-      return;
-    }
     const kp = frame.keypoints;
     const yShoulder = (kp[KP.LEFT_SHOULDER].y + kp[KP.RIGHT_SHOULDER].y) / 2;
-    const threshold = baseline.yOmbrosBase - POSE_CONFIG.shoulderJumpThresholdFracHCorpo * baseline.hCorpo;
-    const delta = yShoulder - threshold; // negativo = acima do threshold (pulou)
-    const wouldDetect = yShoulder < threshold;
+    const baseLabel = baseline ? 'base OK' : 'NO BASE';
+    let thrLine = '';
+    if (baseline) {
+      const threshold = baseline.yOmbrosBase - POSE_CONFIG.shoulderJumpThresholdFracHCorpo * baseline.hCorpo;
+      const delta = yShoulder - threshold;
+      thrLine = ` thr ${threshold.toFixed(3)} Δ ${delta.toFixed(3)}`;
+    }
     this.debugReadout.setText(
-      `shY ${yShoulder.toFixed(3)}\nthr ${threshold.toFixed(3)}\nΔ ${delta.toFixed(3)} conf ${frame.confidence.toFixed(2)}`
+      `${baseLabel} shY ${yShoulder.toFixed(3)}${thrLine} conf ${frame.confidence.toFixed(2)}`
     );
-    this.debugReadout.setColor(wouldDetect ? '#4cd964' : '#ffffff');
+    this.debugReadout.setColor(baseline ? '#ffffff' : '#ff6b6b');
   }
 
   private drawJumpIndicator(): void {

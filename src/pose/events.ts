@@ -48,11 +48,12 @@ export class EventDetector extends EventTarget {
   }
 
   ingest(frame: PoseFrame): void {
-    if (!this.baseline) return;
     const kp = frame.keypoints;
     const t = frame.timestamp;
 
+    // detectJump roda mesmo sem baseline (condição G de velocidade é baseline-independente).
     this.detectJump(kp, t);
+    if (!this.baseline) return;
     this.detectDuck(kp, t);
     this.detectLane(kp, t);
     this.detectCadence(kp, t);
@@ -75,9 +76,6 @@ export class EventDetector extends EventTarget {
   }
 
   private detectJump(kp: Keypoint[], t: number): void {
-    if (!this.baseline) return;
-    // Usa ombro como referência: quadril sai do frame quando o jogador chega perto
-    // da câmera, mas o ombro fica visível mesmo em enquadramento meio-corpo.
     const yShoulder = this.shoulderY(kp);
 
     // Atualiza janela de velocidade (descarta amostras fora da janela)
@@ -87,11 +85,14 @@ export class EventDetector extends EventTarget {
       this.shoulderHistory.shift();
     }
 
-    // Condição B — threshold absoluto + ascending
-    const threshold =
-      this.baseline.yOmbrosBase - POSE_CONFIG.shoulderJumpThresholdFracHCorpo * this.baseline.hCorpo;
-    const ascending = this.prevShoulderY !== null && yShoulder < this.prevShoulderY;
-    const condB = yShoulder < threshold && ascending;
+    // Condição B — threshold absoluto + ascending. Só roda se houver baseline.
+    let condB = false;
+    if (this.baseline) {
+      const threshold =
+        this.baseline.yOmbrosBase - POSE_CONFIG.shoulderJumpThresholdFracHCorpo * this.baseline.hCorpo;
+      const ascending = this.prevShoulderY !== null && yShoulder < this.prevShoulderY;
+      condB = yShoulder < threshold && ascending;
+    }
 
     // Condição G — velocidade pra cima (independente do baseline; resiste a drift)
     let condG = false;
