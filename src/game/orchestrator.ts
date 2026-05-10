@@ -26,6 +26,7 @@ import { GuidedSession } from './scenes/GuidedSession.ts';
 import { GuidedSessionPicker } from './scenes/GuidedSessionPicker.ts';
 import { Rec } from './scenes/Rec.ts';
 import { NinjaFruit } from './scenes/NinjaFruit.ts';
+import { CanoeGame } from './scenes/CanoeGame.ts';
 
 import { PoseDetector } from '../pose/poseDetector.ts';
 import { EmaSmoother } from '../pose/smoother.ts';
@@ -135,7 +136,7 @@ export function startApp(): Phaser.Game {
       width: GAME_CONFIG.width,
       height: GAME_CONFIG.height,
     },
-    scene: [Boot, Welcome, Loading, Tutorial, Calibration, Play, GameOver, Demo, Settings, Summary, WaterBreak, MiniGamesHub, BodyCheck, CatchBicho, TrunkTwist, BellRinger, ChickenGame, DanceDance, CastorGame, CastorModePicker, HelicopterGame, NinjaFruit, MiniGameResult, GuidedSession, GuidedSessionPicker, Rec],
+    scene: [Boot, Welcome, Loading, Tutorial, Calibration, Play, GameOver, Demo, Settings, Summary, WaterBreak, MiniGamesHub, BodyCheck, CatchBicho, TrunkTwist, BellRinger, ChickenGame, DanceDance, CastorGame, CastorModePicker, HelicopterGame, NinjaFruit, CanoeGame, MiniGameResult, GuidedSession, GuidedSessionPicker, Rec],
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } },
     render: { pixelArt: true, antialias: false },
   });
