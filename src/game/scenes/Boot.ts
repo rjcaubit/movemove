@@ -70,12 +70,17 @@ export class Boot extends Phaser.Scene {
     const demo = params.get('demo') === '1';
     const danceCheck = params.get('dance') === 'check';
     const recMode = params.get('rec') === '1';
+    const jumpTester = params.get('jump') === '1';
     if (danceCheck) {
       this.scene.start('Loading', { next: 'DanceDance' });
       return;
     }
     if (recMode) {
       this.scene.start('Loading', { next: 'Rec' });
+      return;
+    }
+    if (jumpTester) {
+      this.scene.start('Loading', { next: 'JumpTester' });
       return;
     }
     this.scene.start(demo ? 'Demo' : 'Welcome');
