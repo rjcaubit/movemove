@@ -36,6 +36,8 @@ export class CanoeGame extends Phaser.Scene {
   private indicLabelR!: Phaser.GameObjects.Text;
   private hudText!: Phaser.GameObjects.Text;
   private timerText!: Phaser.GameObjects.Text;
+  private debugBg: Phaser.GameObjects.Graphics | null = null;
+  private debugText: Phaser.GameObjects.Text | null = null;
 
   private canoeX = 0.5;
   private canoeTargetX = 0.5;
@@ -95,6 +97,7 @@ export class CanoeGame extends Phaser.Scene {
     this.createPip();
     this.setupDetector();
     this.setupDebugKeys();
+    this.setupDebugPanel();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
   }
@@ -423,6 +426,7 @@ export class CanoeGame extends Phaser.Scene {
     this.drawCanoe();
     this.drawIndicators();
     this.updateHud();
+    this.renderDebugPanel();
   }
 
   private checkCollisions(): void {
@@ -461,6 +465,74 @@ export class CanoeGame extends Phaser.Scene {
     this.input.keyboard?.on('keydown-D', () => this.onStroke('R'));
   }
 
+  // ─────────────────────────────────────
+  // Debug panel — só com ?debug=1
+  // Mostra speed/dy/cooldown por braço + razão de rejeição em tempo real,
+  // pra usuário entender qual movimento o detector espera.
+  // ─────────────────────────────────────
+
+  private setupDebugPanel(): void {
+    if (!KeyboardDebug.isEnabledByQuery()) return;
+
+    const W = GAME_CONFIG.width;
+    const panelW = Math.min(W - 24, 360);
+    const panelH = 162;
+    const panelX = 12;
+    const panelY = 70;
+
+    this.debugBg = this.add.graphics().setDepth(50);
+    this.debugBg.fillStyle(0x000000, 0.78);
+    this.debugBg.fillRoundedRect(panelX, panelY, panelW, panelH, 10);
+    this.debugBg.lineStyle(2, 0x4cd964, 0.9);
+    this.debugBg.strokeRoundedRect(panelX, panelY, panelW, panelH, 10);
+
+    this.debugText = this.add.text(panelX + 10, panelY + 8, '', {
+      fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '12px',
+      color: '#ffffff', lineSpacing: 2,
+    }).setDepth(51);
+
+    this.add.text(panelX + 10, panelY + panelH + 6,
+      'Levanta o braço, desce rápido (~ombro→quadril) — ALTERNA L↔R',
+      {
+        fontFamily: 'VT323, ui-monospace', fontSize: '16px',
+        color: '#ffd60a', stroke: '#000', strokeThickness: 3,
+        wordWrap: { width: panelW },
+      }).setDepth(51);
+  }
+
+  private renderDebugPanel(): void {
+    if (!this.debugText || !this.detector) return;
+
+    const d = this.detector.getDebug();
+    const fmt = (n: number, digits = 3): string => n.toFixed(digits).padStart(7);
+    const reasonLabel = (r: string | null): string => {
+      if (!r) return '✓ pronto';
+      switch (r) {
+        case 'cooldown':   return '⏳ cooldown';
+        case 'speed':      return '🐢 lento';
+        case 'no-descent': return '↕ subindo';
+        case 'history':    return '… aquece';
+        case 'alternance': return '↔ alterna!';
+        default:           return r;
+      }
+    };
+
+    const now = performance.now();
+    const sinceStroke = d.lastStrokeAt > 0 ? Math.floor(now - d.lastStrokeAt) : -1;
+    const lastSide = d.lastStroke ?? '–';
+
+    const lines = [
+      `THRESHOLD speed≥${ROWING_STROKE_THRESHOLD.toFixed(2)}  dy≥0.015  cool≥${ROWING_REFRACTORY_MS}ms`,
+      ``,
+      `L  speed=${fmt(d.L.speed)}  dy=${fmt(d.L.dy, 4)}  cool=${Math.round(d.L.cooldownMs).toString().padStart(4)}ms  ${reasonLabel(d.L.lastReject)}`,
+      `R  speed=${fmt(d.R.speed)}  dy=${fmt(d.R.dy, 4)}  cool=${Math.round(d.R.cooldownMs).toString().padStart(4)}ms  ${reasonLabel(d.R.lastReject)}`,
+      ``,
+      `Última remada: ${lastSide}  (${sinceStroke >= 0 ? sinceStroke + 'ms atrás' : '—'})`,
+      `Próxima permitida: ${lastSide === 'L' ? 'R' : lastSide === 'R' ? 'L' : 'L ou R'}`,
+    ];
+    this.debugText.setText(lines);
+  }
+
   private endGame(): void {
     if (this.ended) return;
     this.ended = true;
@@ -483,5 +555,8 @@ export class CanoeGame extends Phaser.Scene {
       this.pipCanvas = null;
       this.pipVideo = null;
     }
+
+    this.debugBg = null;
+    this.debugText = null;
   }
 }
