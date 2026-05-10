@@ -2,6 +2,10 @@ import * as Phaser from 'phaser';
 import { getRefs } from '../orchestrator.ts';
 import { RowingDetector } from '../systems/rowingDetector.ts';
 import { KeypointOverlay } from '../../ui/keypointOverlay.ts';
+import { Narrator } from '../systems/narrator.ts';
+import { narratorLines } from '../i18n/narratorLines.ts';
+import { KeyboardDebug } from '../../debug/keyboard.ts';
+import { strings } from '../../i18n/strings.ts';
 import {
   CANOE_DURATION_MS, CANOE_SPEED_PER_STROKE, CANOE_SPEED_DECAY,
   CANOE_MAX_SPEED, CANOE_STEER_AMOUNT, CANOE_LERP,
@@ -16,6 +20,7 @@ interface Rock { x: number; y: number; rx: number; ry: number } // normalized 0�
 export class CanoeGame extends Phaser.Scene {
   private unsub: (() => void) | null = null;
   private detector!: RowingDetector;
+  private narrator!: Narrator;
   private pipDiv: HTMLDivElement | null = null;
   private pipOverlay: KeypointOverlay | null = null;
   private pipCanvas: HTMLCanvasElement | null = null;
@@ -83,6 +88,9 @@ export class CanoeGame extends Phaser.Scene {
       stroke: '#000', strokeThickness: 4,
     }).setDepth(20).setInteractive({ useHandCursor: true })
       .on('pointerup', () => this.endGame());
+
+    this.narrator = new Narrator(null, true);
+    this.narrator.speak(narratorLines.canoeStart(), 1);
 
     this.createPip();
     this.setupDetector();
@@ -280,8 +288,11 @@ export class CanoeGame extends Phaser.Scene {
 
   private createPip(): void {
     const refs = getRefs(this);
-    const stream = (refs.video as HTMLVideoElement).srcObject as MediaStream | null;
-    if (!stream) return; // câmera não abriu (não deve acontecer pós-BodyCheck)
+    const stream = refs.video.srcObject as MediaStream | null;
+    if (!stream) {
+      console.warn('[CanoeGame] PIP skipped — refs.video.srcObject is null');
+      return;
+    }
 
     const pip = document.createElement('div');
     pip.id = 'canoe-pip';
@@ -343,7 +354,7 @@ export class CanoeGame extends Phaser.Scene {
         const h = this.pipVideo.videoHeight || 240;
         if (this.pipCanvas.width !== w)  this.pipCanvas.width  = w;
         if (this.pipCanvas.height !== h) this.pipCanvas.height = h;
-        this.pipOverlay.draw(frame.keypoints, frame.confidence ?? 1);
+        this.pipOverlay.draw(frame.keypoints, frame.confidence);
       }
     });
   }
@@ -353,9 +364,10 @@ export class CanoeGame extends Phaser.Scene {
     this.strokeFlash[side] = 300;
 
     const dir = side === 'L' ? -1 : 1;
+    // Rio ocupa [0.225, 0.775] da largura; clamp considera meia-largura da canoa (~0.04 norm)
     this.canoeTargetX = Phaser.Math.Clamp(
       this.canoeTargetX + dir * CANOE_STEER_AMOUNT,
-      0.1, 0.9,
+      0.27, 0.73,
     );
 
     this.speed = Math.min(this.speed + CANOE_SPEED_PER_STROKE, CANOE_MAX_SPEED);
@@ -416,7 +428,8 @@ export class CanoeGame extends Phaser.Scene {
   private checkCollisions(): void {
     const cx = this.canoeX;
     const cy = 0.72;
-    const cw = 0.07; const ch = 0.10;
+    // Half-extents normalizados batendo com sprite (bw=28, bh=52 sobre W~720, H~1280)
+    const cw = 0.04; const ch = 0.045;
 
     for (const r of this.rocks) {
       const dx = Math.abs(r.x - cx) / (cw + r.rx);
@@ -425,6 +438,7 @@ export class CanoeGame extends Phaser.Scene {
         this.speed *= CANOE_COLLISION_BRAKE;
         this.cameras.main.shake(200, 0.006);
         this.cameras.main.flash(150, 255, 60, 60, false);
+        this.narrator.speak(narratorLines.canoeRockHit(), 2);
         this.rocks = this.rocks.filter((k) => k !== r);
         break; // uma colisão por frame
       }
@@ -441,7 +455,7 @@ export class CanoeGame extends Phaser.Scene {
   }
 
   private setupDebugKeys(): void {
-    if (!window.location.search.includes('debug')) return;
+    if (!KeyboardDebug.isEnabledByQuery()) return;
 
     this.input.keyboard?.on('keydown-A', () => this.onStroke('L'));
     this.input.keyboard?.on('keydown-D', () => this.onStroke('R'));
@@ -451,9 +465,9 @@ export class CanoeGame extends Phaser.Scene {
     if (this.ended) return;
     this.ended = true;
     this.scene.start('MiniGameResult', {
-      score:    Math.floor(this.distanceM),
-      label:    'metros remados',
-      gameKey:  'CanoeGame',
+      score:      Math.floor(this.distanceM),
+      scoreLabel: strings.miniGames.canoeMeters,
+      gameKey:    'CanoeGame',
     });
   }
 
