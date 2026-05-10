@@ -231,8 +231,7 @@ export class Play extends Phaser.Scene {
       this.hideBanner();
     }
 
-    const refs = getRefs(this);
-    refs.eventDetector.ingest(frame);
+    // ingest do EventDetector é feito globalmente no orchestrator.
   }
 
   update(_time: number, deltaMs: number): void {

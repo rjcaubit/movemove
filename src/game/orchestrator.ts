@@ -91,6 +91,9 @@ export function startApp(): Phaser.Game {
       debugPanel.tickFps(raw.timestamp);
       debugPanel.setConfidence(raw.confidence);
     }
+    // Alimenta o EventDetector globalmente — qualquer cena que escute
+    // 'event' funciona sem precisar fazer ingest manual.
+    eventDetector.ingest(frame);
     for (const cb of smoothedSubs) cb(frame);
   });
 
