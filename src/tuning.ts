@@ -91,13 +91,14 @@ export const FX_PARTICLE_COIN_COUNT  = 6;
 export const FX_PARTICLE_HIT_COUNT   = 4;
 
 // Ninja Fruit
+export const NINJA_DURATION_MS = 60_000;
 export const NINJA_VELOCITY_THRESHOLD = 1.2;           // H_corpo/s — velocidade mínima do pulso pra cortar
 export const NINJA_BOMB_GRACE_MS = 5000;               // só fruta nos primeiros 5s
 export const NINJA_BOMB_SPAWN_CHANCE_INITIAL = 0.05;
 export const NINJA_BOMB_SPAWN_CHANCE_MAX = 0.30;       // chega aqui ao longo de 30s
 export const NINJA_SPAWN_INTERVAL_MS_INITIAL = 1100;
 export const NINJA_SPAWN_INTERVAL_MS_MIN = 600;
-export const NINJA_SPAWN_INTERVAL_STEP_MS = 25;        // acelera/desacelera por slice/miss
+export const NINJA_SPAWN_INTERVAL_STEP_MS = 25;        // acelera por slice
 export const NINJA_HIT_RADIUS = 0.10;                  // raio normalizado do hit test
 export const NINJA_INTRO_MS = 3000;
 export const NINJA_INTRO_MIN_MOVEMENT = 0.05;          // deslocamento total pra detectar mão dominante
@@ -109,3 +110,21 @@ export function getAgeGroup(): AgeGroup {
   } catch { /* ignore */ }
   return '8-10';
 }
+
+// ─────────────────────────────────────────────
+// CANOE GAME
+// ─────────────────────────────────────────────
+export const CANOE_DURATION_MS        = 60_000;
+export const CANOE_SPEED_PER_STROKE   = 0.06;   // acréscimo normalizado por stroke
+export const CANOE_SPEED_DECAY        = 0.9;    // multiplica speed a cada segundo sem stroke
+export const CANOE_MAX_SPEED          = 0.4;    // max normalizado (0–1/s)
+export const CANOE_STEER_AMOUNT       = 0.12;   // fração de largura desviada por stroke
+export const CANOE_LERP               = 0.08;   // interpolação X por frame (0=lento, 1=imediato)
+export const CANOE_COLLISION_BRAKE    = 0.35;   // multiplica speed em colisão
+export const CANOE_ROCK_BASE_SPEED    = 0.0002; // fração de tela/ms, mínimo mesmo sem remar
+export const CANOE_ROCK_SPAWN_MS      = 2200;   // ms entre spawns de pedra
+export const CANOE_METERS_PER_UNIT    = 50;     // 1 unidade normalizada = 50 metros (HUD)
+
+// ROWING DETECTOR
+export const ROWING_STROKE_THRESHOLD  = 0.40;   // velocidade mínima do pulso (coords norm/s)
+export const ROWING_REFRACTORY_MS     = 420;    // ms de cooldown por lado após stroke

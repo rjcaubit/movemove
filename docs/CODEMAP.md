@@ -1,6 +1,6 @@
 # CODEMAP — Movemove
 
-> Atualizado: 2026-05-10 (Issue #15 — NinjaFruit adicionado; Issue #14 WIP — assets Kenney, novas cenas e sistemas)
+> Atualizado: 2026-05-10 (Issue #16 — CanoeGame adicionado; Issue #15 — NinjaFruit; Issue #14 WIP — assets Kenney, novas cenas e sistemas)
 > Fonte da verdade sobre estrutura, módulos e padrões do projeto.
 
 ## Status do projeto
@@ -115,6 +115,7 @@ Todas registradas no `orchestrator.ts` (`new Phaser.Game({ scene: [...] })`).
 | `DanceDance` | Mini-game | DDR com pictogramas (~75s) |
 | `HelicopterGame` | Mini-game | Helicóptero — pula pra subir (60s, gravidade progressiva) |
 | `NinjaFruit` | Mini-game | Corta frutas, evita bombas — mão dominante auto-detectada, 3 vidas, combo |
+| `CanoeGame` | Mini-game | Remo alternado top-down, avatar sprite, PIP camera, sem CameraBackdrop |
 | `CastorGame` | Mini-game | Whack-a-mole 1P/2P (60s) |
 | `CastorModePicker` | Mini-game | Picker 1P/2P → BodyCheck → Castor |
 | `GuidedSession` | Sessão | Ciclos rest/exercise (5/7/10/15min) |
@@ -159,6 +160,7 @@ Todas registradas no `orchestrator.ts` (`new Phaser.Game({ scene: [...] })`).
 | #5 | feat | Fase 3 — conteúdo, progressão, 2P | Aberta (parcialmente coberta por #14) |
 | #14 | improve | Catálogo de jogos lúdicos + assets Kenney + 2P + Rec | **WIP** |
 | #15 | feat | Ninja Fruit — mini-jogo de cortar frutas com mão dominante | **WIP** |
+| #16 | feat | CanoeGame — mini-jogo de remo top-down + PIP camera | **WIP** |
 
 ## Achados acumulados
 
