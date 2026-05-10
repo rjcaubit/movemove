@@ -77,7 +77,7 @@ export class EventDetector extends EventTarget {
     // da câmera, mas o ombro fica visível mesmo em enquadramento meio-corpo.
     const yShoulder = this.shoulderY(kp);
     const threshold =
-      this.baseline.yOmbrosBase - POSE_CONFIG.jumpThresholdFracHCorpo * this.baseline.hCorpo;
+      this.baseline.yOmbrosBase - POSE_CONFIG.shoulderJumpThresholdFracHCorpo * this.baseline.hCorpo;
     const ascending = this.prevShoulderY !== null && yShoulder < this.prevShoulderY;
     if (
       yShoulder < threshold &&

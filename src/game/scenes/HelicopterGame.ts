@@ -261,7 +261,7 @@ export class HelicopterGame extends Phaser.Scene {
     }
     const kp = frame.keypoints;
     const yShoulder = (kp[KP.LEFT_SHOULDER].y + kp[KP.RIGHT_SHOULDER].y) / 2;
-    const threshold = baseline.yOmbrosBase - POSE_CONFIG.jumpThresholdFracHCorpo * baseline.hCorpo;
+    const threshold = baseline.yOmbrosBase - POSE_CONFIG.shoulderJumpThresholdFracHCorpo * baseline.hCorpo;
     const delta = yShoulder - threshold; // negativo = acima do threshold (pulou)
     const wouldDetect = yShoulder < threshold;
     this.debugReadout.setText(

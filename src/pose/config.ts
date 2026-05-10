@@ -19,7 +19,11 @@ export const POSE_CONFIG = {
   lowConfidenceWarnDurationMs: 3000,
   driftRecalibrateSuggestMs: 10000,
 
-  /** Heurística JUMP */
+  /** Heurística JUMP — referência por ombro, threshold em fração de hCorpo.
+   * Validado em /?jump=1 (estratégia B venceu): 5% capta pulos reais
+   * sem disparos espúrios. O 0.10 anterior era exigente demais. */
+  shoulderJumpThresholdFracHCorpo: 0.05,
+  /** Mantido pra uso em jumping_jack (offset nariz → topo da cabeça). */
   jumpThresholdFracHCorpo: 0.10,
   jumpCooldownMs: 400,
 
