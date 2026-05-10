@@ -40,6 +40,8 @@ export class NinjaFruit extends Phaser.Scene {
 
   private livesText!: Phaser.GameObjects.Text;
   private scorePill!: Pill;
+  private comboPill!: Pill;
+  private combo = 0;
   private introText: Phaser.GameObjects.Text | null = null;
 
   private backdrop: CameraBackdrop | null = null;
@@ -99,6 +101,13 @@ export class NinjaFruit extends Phaser.Scene {
       width: 200, fill: 0xff453a, stroke: 0xffffff,
       textColor: '#ffffff', fontSize: 28, icon: '🍉', origin: [0.5, 0.5],
     });
+
+    this.comboPill = new Pill(this, width / 2, 50, '', {
+      width: 240, fill: 0xffd60a, stroke: 0xffffff,
+      textColor: '#1a0b2a', fontSize: 26, icon: '🔥', origin: [0.5, 0.5],
+    });
+    this.comboPill.container.setVisible(false);
+    this.combo = 0;
 
     this.livesText = this.add.text(width - 130, 50, this.livesStr(), {
       fontFamily: 'VT323, ui-monospace', fontSize: '36px',
@@ -266,10 +275,29 @@ export class NinjaFruit extends Phaser.Scene {
     this.scorePill.setText(String(this.score));
   }
 
+  private updateCombo(slicedFruit: boolean): void {
+    if (slicedFruit) {
+      this.combo += 1;
+      if (this.combo > this.bestCombo) this.bestCombo = this.combo;
+      if (this.combo >= 2) {
+        this.comboPill.setText(`x${this.combo} ${strings.miniGames.ninjaCombo}`);
+        this.comboPill.container.setVisible(true);
+        if (this.combo === 5 || this.combo % 10 === 0) {
+          this.narrator.speak(narratorLines.ninjaCombo(this.combo), 1);
+        }
+      }
+    } else {
+      this.combo = 0;
+      this.comboPill.container.setVisible(false);
+    }
+  }
+
   private onFruitSliced(f: Fruit): void {
     f.slice(this);
     if (this.cache.audio.exists('slice')) this.sound.play('slice', { volume: 0.4 });
-    this.score += 1;
+    this.updateCombo(true);
+    const points = 1 * Math.max(1, this.combo);
+    this.score += points;
     this.scorePill.setText(String(this.score));
     this.spawnIntervalMs = Math.max(NINJA_SPAWN_INTERVAL_MS_MIN, this.spawnIntervalMs - NINJA_SPAWN_INTERVAL_STEP_MS);
     if (this.score === 1 || this.score % 15 === 0) {
@@ -280,6 +308,7 @@ export class NinjaFruit extends Phaser.Scene {
   private onBombSliced(f: Fruit): void {
     f.explode(this);
     if (this.cache.audio.exists('explosion')) this.sound.play('explosion', { volume: 0.5 });
+    this.updateCombo(false);
     this.lives -= 1;
     this.livesText.setText(this.livesStr());
     this.cameras.main.shake(220, 0.018);
@@ -290,6 +319,7 @@ export class NinjaFruit extends Phaser.Scene {
   }
 
   private onFruitMissed(): void {
+    this.updateCombo(false);
     this.lives -= 1;
     this.spawnIntervalMs = Math.min(
       NINJA_SPAWN_INTERVAL_MS_INITIAL,
