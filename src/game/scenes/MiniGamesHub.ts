@@ -41,6 +41,7 @@ const GAMES_BY_CATEGORY: Record<Category, GameCard[]> = {
     { title: strings.miniGames.runnerTitle, desc: strings.miniGames.runnerDesc, icon: '🏃', color: 0xff453a, start: goCheck('Calibration') },
     { title: strings.miniGames.helicopterTitle, desc: strings.miniGames.helicopterDesc, icon: '🚁', color: 0x4cd964, start: goCheck('HelicopterGame') },
     { title: strings.miniGames.chickenTitle, desc: strings.miniGames.chickenDesc, icon: '🐔', color: 0xffae0a, start: goCheck('ChickenGame') },
+    { title: strings.miniGames.canoeTitle, desc: strings.miniGames.canoeDesc, icon: '🛶', color: 0x1a8fc1, start: goCheck('CanoeGame') },
   ],
   rhythm: [
     { title: strings.miniGames.bellTitle,  desc: strings.miniGames.bellDesc,  icon: '🔔', color: 0xffae0a, start: goCheck('BellRinger') },

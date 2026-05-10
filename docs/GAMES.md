@@ -243,6 +243,42 @@ Convenção: jogos chamam `MiniGameResult` ao terminar; este pode encadear o pr�
 
 ---
 
+## 14. Canoa (`CanoeGame`)
+
+**Arquivo:** `src/game/scenes/CanoeGame.ts`
+**Sistema:** `src/game/systems/rowingDetector.ts` — `RowingDetector`
+
+**Gesto:** pulso desce com velocidade ≥ `ROWING_STROKE_THRESHOLD`
+(coords norm/s) em movimento descendente (`dy > 0.015`). Alternância
+obrigatória — não conta dois strokes seguidos do mesmo lado.
+Refractory de `ROWING_REFRACTORY_MS` ms por lado após detectar.
+
+**Mecânica:**
+- Rio top-down scrollando verticalmente (sem `CameraBackdrop`).
+- Canoa (sprite Phaser Graphics: oval laranja + bonequinho de cima +
+  dois remos) move L/R com inércia (`lerp` por frame).
+- Stroke L → canoa desvia para esquerda; stroke R → para direita.
+- `speed` cresce `CANOE_SPEED_PER_STROKE` por stroke (até `CANOE_MAX_SPEED`);
+  decai exponencialmente após 600 ms sem stroke (`CANOE_SPEED_DECAY`/s).
+- Pedras spawnam no topo a cada `CANOE_ROCK_SPAWN_MS` ms; scrollam para
+  baixo. Colisão AABB normalizado → `speed *= CANOE_COLLISION_BRAKE` +
+  screenShake + flash vermelho.
+- Wake trail (triângulo branco) atrás da canoa, fade por velocidade.
+- Indicadores L/R hexagonais na base da tela: `0x4cd9ff` em repouso,
+  flash `0xffd60a` no stroke detectado (300 ms).
+
+**PIP camera:** HTML overlay (`<video>` + `<canvas>` com `KeypointOverlay`)
+em `position: fixed; bottom-right; width: 22vw` (clamp 80–140 px).
+Stream compartilhado via `refs.video.srcObject`; skeleton desenhado em
+tempo real para usuário verificar detecção.
+
+**Vidas:** sem vidas nesta versão (V2). **Duração:** 60 s fixos.
+**Pontuação:** distância em metros (`distanceM`, `CANOE_METERS_PER_UNIT`
+converte unidades normalizadas).
+**Keyboard debug:** `A` = stroke L; `D` = stroke R (com `?debug=1`).
+
+---
+
 ## Infra compartilhada
 
 | Módulo | Papel |
