@@ -52,6 +52,10 @@ export class HelicopterGame extends Phaser.Scene {
   private ground!: Phaser.GameObjects.Graphics;
   private livesText!: Phaser.GameObjects.Text;
   private timePill!: Pill;
+  /** Indicador "J" que pisca quando o pulo é detectado — feedback visual. */
+  private indicJ!: Phaser.GameObjects.Graphics;
+  private indicJLabel!: Phaser.GameObjects.Text;
+  private jumpFlashMs = 0;
 
   private backdrop: CameraBackdrop | null = null;
   private narrator!: Narrator;
@@ -78,6 +82,7 @@ export class HelicopterGame extends Phaser.Scene {
     this.flashTimer = 0;
     this.lastJumpAt = -Infinity;
     this.recentJumps = [];
+    this.jumpFlashMs = 0;
 
     addThemedFrame(this, 'helicopter');
     addTitleBanner(this, width / 2, 50, strings.miniGames.helicopterTitle, 0x4cd964, 0xffffff);
@@ -99,6 +104,15 @@ export class HelicopterGame extends Phaser.Scene {
     this.heli = this.add.text(width * 0.35, this.heliY * height, '🚁', {
       fontSize: '56px',
     }).setOrigin(0.5).setDepth(20);
+
+    // Indicador "J" — pisca quando o pulo é detectado (igual L/R do CanoeGame)
+    const indicY = height - 52;
+    this.indicJ = this.add.graphics().setDepth(15);
+    this.indicJLabel = this.add.text(width / 2, indicY, 'J', {
+      fontFamily: 'VT323, ui-monospace', fontSize: '32px', color: '#ffffff',
+      stroke: '#000', strokeThickness: 4, fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(16);
+    this.drawJumpIndicator();
 
     const refs = getRefs(this);
     this.backdrop = new CameraBackdrop(this, refs.video, refs.onSmoothedFrame, 0.6);
@@ -141,6 +155,7 @@ export class HelicopterGame extends Phaser.Scene {
       this.heliVY = Math.max(JUMP_VY_CAP, impulse);
     }
     this.lastJumpAt = now;
+    this.jumpFlashMs = 300;
     // Pulso do rotor — squash visual no eixo Y
     this.tweens.add({
       targets: this.heli,
@@ -188,6 +203,10 @@ export class HelicopterGame extends Phaser.Scene {
     this.heli.setRotation(Phaser.Math.Clamp(this.heliVY * 0.6, -0.30, 0.85));
     this.heli.setY(this.heliY * GAME_CONFIG.height);
 
+    // Decay e re-render do indicador "J"
+    if (this.jumpFlashMs > 0) this.jumpFlashMs = Math.max(0, this.jumpFlashMs - delta);
+    this.drawJumpIndicator();
+
     // Piscada de invencibilidade
     const inInvincibility = now - this.lastHitAt < HIT_INVINCIBILITY_MS;
     if (inInvincibility) {
@@ -217,6 +236,29 @@ export class HelicopterGame extends Phaser.Scene {
 
   private livesStr(): string {
     return '❤️'.repeat(this.lives) + '🖤'.repeat(LIVES - this.lives);
+  }
+
+  private drawJumpIndicator(): void {
+    const lit = this.jumpFlashMs > 0;
+    const x = GAME_CONFIG.width / 2;
+    const y = GAME_CONFIG.height - 52;
+    const r = 30;
+    const color = lit ? 0xffd60a : 0x4cd964;
+    const alpha = lit ? 0.9 : 0.3;
+
+    const g = this.indicJ;
+    g.clear();
+    g.fillStyle(color, alpha);
+    g.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI / 3) * i - Math.PI / 6;
+      const px = x + r * Math.cos(a);
+      const py = y + r * Math.sin(a);
+      if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+    }
+    g.closePath(); g.fillPath();
+
+    this.indicJLabel.setColor(lit ? '#0a1a2a' : '#ffffff');
   }
 
   private drawGround(): void {
