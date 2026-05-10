@@ -14,6 +14,7 @@ import { handPosition } from '../../pose/spatialQueries.ts';
 import { KeyboardDebug } from '../../debug/keyboard.ts';
 import type { PoseFrame } from '../../pose/types.ts';
 import {
+  NINJA_DURATION_MS,
   NINJA_BOMB_GRACE_MS,
   NINJA_BOMB_SPAWN_CHANCE_INITIAL,
   NINJA_BOMB_SPAWN_CHANCE_MAX,
@@ -26,20 +27,17 @@ import {
   NINJA_INTRO_MIN_MOVEMENT,
 } from '../../tuning.ts';
 
-const LIVES = 3;
-
 interface NinjaFruitData {
   session?: string[];
 }
 
 export class NinjaFruit extends Phaser.Scene {
-  private lives = LIVES;
   private score = 0;
   private bestCombo = 0;
   private startedAt = 0;
   private done = false;
 
-  private livesText!: Phaser.GameObjects.Text;
+  private timePill!: Pill;
   private scorePill!: Pill;
   private comboPill!: Pill;
   private combo = 0;
@@ -80,7 +78,6 @@ export class NinjaFruit extends Phaser.Scene {
     const { width } = GAME_CONFIG;
     this.cameras.main.setBackgroundColor(0x0a0204);
     this.session = data?.session ?? [];
-    this.lives = LIVES;
     this.score = 0;
     this.bestCombo = 0;
     this.startedAt = performance.now();
@@ -112,9 +109,10 @@ export class NinjaFruit extends Phaser.Scene {
     this.comboPill.container.setVisible(false);
     this.combo = 0;
 
-    this.livesText = this.add.text(width - 130, 50, this.livesStr(), {
-      fontFamily: 'VT323, ui-monospace', fontSize: '36px',
-    }).setOrigin(0.5).setDepth(50);
+    this.timePill = new Pill(this, width - 130, 50, `${NINJA_DURATION_MS / 1000}s`, {
+      width: 180, fill: 0x1a1a2e, stroke: 0xffffff,
+      textColor: '#ffffff', fontSize: 28, icon: '⏱', origin: [0.5, 0.5],
+    });
 
     this.introText = this.add.text(width / 2, GAME_CONFIG.height / 2,
       strings.miniGames.ninjaIntroWave, {
@@ -214,10 +212,16 @@ export class NinjaFruit extends Phaser.Scene {
     this.lastFrameTime = now;
     const elapsed = now - this.startedAt;
 
+    // Timer — termina ao esgotar os 60s (só conta após a intro)
+    const gameElapsed = Math.max(0, elapsed - NINJA_INTRO_MS);
+    const remaining = Math.max(0, Math.ceil((NINJA_DURATION_MS - gameElapsed) / 1000));
+    this.timePill.setText(`${remaining}s`);
+    if (gameElapsed >= NINJA_DURATION_MS) { this.finish(); return; }
+
     // Spawn (só após a intro ou em debug)
     if (now >= this.nextSpawnAt) {
-      const bombChanceRamp = Math.min(1, elapsed / 30_000);
-      const bombChance = elapsed < NINJA_BOMB_GRACE_MS
+      const bombChanceRamp = Math.min(1, gameElapsed / 30_000);
+      const bombChance = gameElapsed < NINJA_BOMB_GRACE_MS
         ? 0
         : NINJA_BOMB_SPAWN_CHANCE_INITIAL +
           (NINJA_BOMB_SPAWN_CHANCE_MAX - NINJA_BOMB_SPAWN_CHANCE_INITIAL) * bombChanceRamp;
@@ -269,13 +273,10 @@ export class NinjaFruit extends Phaser.Scene {
       }
     }
 
-    // Cleanup + penalidade por fruta perdida
+    // Cleanup — frutas que saem da tela são simplesmente removidas, sem penalidade
     for (const f of this.fruits) {
       if (f.alive && f.isOffscreen()) {
-        if (f.kind === 'fruit' && !f.wasAccounted()) {
-          f.markAccounted();
-          this.onFruitMissed();
-        }
+        if (f.kind === 'fruit') this.updateCombo(false);
         f.destroy();
       }
     }
@@ -283,7 +284,6 @@ export class NinjaFruit extends Phaser.Scene {
 
     // Trail + HUD
     this.trail?.render();
-    this.livesText.setText(this.livesStr());
     this.scorePill.setText(String(this.score));
   }
 
@@ -321,31 +321,9 @@ export class NinjaFruit extends Phaser.Scene {
     f.explode(this);
     if (this.cache.audio.exists('explosion')) this.sound.play('explosion', { volume: 0.5 });
     this.updateCombo(false);
-    this.lives -= 1;
-    this.livesText.setText(this.livesStr());
     this.cameras.main.shake(220, 0.018);
     this.cameras.main.flash(180, 255, 255, 255);
     this.narrator.speak(narratorLines.ninjaBomb(), 2);
-    if (this.lives <= 0) this.finish();
-    else if (this.lives === 1) this.narrator.speak(narratorLines.ninjaLastLife(), 2);
-  }
-
-  private onFruitMissed(): void {
-    this.updateCombo(false);
-    this.lives -= 1;
-    this.spawnIntervalMs = Math.min(
-      NINJA_SPAWN_INTERVAL_MS_INITIAL,
-      Math.max(NINJA_SPAWN_INTERVAL_MS_MIN, this.spawnIntervalMs + NINJA_SPAWN_INTERVAL_STEP_MS),
-    );
-    if (this.lives <= 0) {
-      this.finish();
-    } else if (this.lives === 1) {
-      this.narrator.speak(narratorLines.ninjaLastLife(), 2);
-    }
-  }
-
-  private livesStr(): string {
-    return '❤️'.repeat(this.lives) + '🖤'.repeat(LIVES - this.lives);
   }
 
   private finish(): void {

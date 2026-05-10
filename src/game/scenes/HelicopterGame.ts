@@ -16,12 +16,17 @@ const GRAVITY_MAX = 0.32;       // queda no fim ainda controlável
 const GRAVITY_RAMP_MS = 12_000;
 const MAX_FALL_VY = 0.55;       // velocidade terminal de queda (era 0.85)
 // Pulo
-const JUMP_VY = -0.55;          // impulso forte pra cima
-const JUMP_STACK_FACTOR = 0.7;  // pulo enquanto já sobe adiciona 70% do impulso
-const JUMP_VY_CAP = -1.10;      // teto de velocidade ascendente
-// Hover — após um pulo, gravidade fica reduzida por 1.5s (rotor ainda dando força)
-const HOVER_DURATION_MS = 1500;
-const HOVER_GRAVITY_FLOOR = 0.15; // logo após pulo, gravidade vira 15% da normal
+const JUMP_VY = -0.55;          // impulso base pra cima
+const JUMP_STACK_FACTOR = 0.8;  // pulo enquanto já sobe adiciona 80% do impulso base
+const JUMP_VY_CAP = -1.40;      // teto de velocidade ascendente (mais alto = sobe mais quando pumping)
+// Frequência de pulos — quanto mais rápido o jogador pula, maior o multiplicador
+// no impulso. Janela observa pulos nos últimos JUMP_RATE_WINDOW_MS.
+const JUMP_RATE_WINDOW_MS = 1500;
+const JUMP_RATE_STEP = 0.33;    // cada pulo prévio dentro da janela soma 33% no multiplicador
+const JUMP_RATE_MAX_BONUS = 1.0; // teto: bônus máximo de +100% (multiplicador chega a 2×)
+// Hover — após um pulo, gravidade fica reduzida por 1.8s (rotor ainda segurando)
+const HOVER_DURATION_MS = 1800;
+const HOVER_GRAVITY_FLOOR = 0.10; // logo após pulo, gravidade vira 10% da normal
 // Posição
 const FLOOR_Y = 0.84;
 const CEIL_Y = 0.06;
@@ -54,6 +59,8 @@ export class HelicopterGame extends Phaser.Scene {
   private eventListener: ((e: Event) => void) | null = null;
   private flashTimer = 0;
   private lastJumpAt = -Infinity;
+  /** Timestamps dos pulos recentes — usados para calcular o multiplicador por frequência. */
+  private recentJumps: number[] = [];
 
   constructor() { super('HelicopterGame'); }
 
@@ -70,6 +77,7 @@ export class HelicopterGame extends Phaser.Scene {
     this.lastHitAt = -Infinity;
     this.flashTimer = 0;
     this.lastJumpAt = -Infinity;
+    this.recentJumps = [];
 
     addThemedFrame(this, 'helicopter');
     addTitleBanner(this, width / 2, 50, strings.miniGames.helicopterTitle, 0x4cd964, 0xffffff);
@@ -116,15 +124,23 @@ export class HelicopterGame extends Phaser.Scene {
 
   private onJump(): void {
     if (this.done) return;
+    const now = performance.now();
+    // Conta quantos pulos prévios estão dentro da janela ativa.
+    this.recentJumps = this.recentJumps.filter((t) => now - t < JUMP_RATE_WINDOW_MS);
+    const prevInWindow = this.recentJumps.length;
+    // Multiplicador: 1× pulo isolado, +33%/pulo prévio até cap de 2×.
+    const rateMul = 1 + Math.min(JUMP_RATE_MAX_BONUS, prevInWindow * JUMP_RATE_STEP);
+    this.recentJumps.push(now);
+
+    const impulse = JUMP_VY * rateMul;
     if (this.heliVY < 0) {
-      // Já estava subindo — pulo empilha impulso (pumping up). Limita pelo cap
-      // pra não disparar pro infinito se o jogador pular freneticamente.
-      this.heliVY = Math.max(JUMP_VY_CAP, this.heliVY + JUMP_VY * JUMP_STACK_FACTOR);
+      // Já estava subindo — empilha impulso (pumping up), respeitando cap.
+      this.heliVY = Math.max(JUMP_VY_CAP, this.heliVY + impulse * JUMP_STACK_FACTOR);
     } else {
-      // Estava caindo / parado — impulso completo
-      this.heliVY = JUMP_VY;
+      // Estava caindo / parado — impulso completo modulado pelo rate.
+      this.heliVY = Math.max(JUMP_VY_CAP, impulse);
     }
-    this.lastJumpAt = performance.now();
+    this.lastJumpAt = now;
     // Pulso do rotor — squash visual no eixo Y
     this.tweens.add({
       targets: this.heli,

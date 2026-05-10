@@ -84,7 +84,7 @@ export class DebugPanel {
     if (this.state.baseline) {
       const b = this.state.baseline;
       this.rowBase.lastChild!.textContent =
-        `H=${b.hCorpo.toFixed(3)} hipY=${b.yQuadrilBase.toFixed(3)} cX=${b.xCentroBase.toFixed(3)} W=${b.larguraOmbros.toFixed(3)}`;
+        `H=${b.hCorpo.toFixed(3)} shY=${b.yOmbrosBase.toFixed(3)} hipY=${b.yQuadrilBase.toFixed(3)} cX=${b.xCentroBase.toFixed(3)} W=${b.larguraOmbros.toFixed(3)}`;
     } else {
       this.rowBase.lastChild!.textContent = '—';
     }

@@ -66,6 +66,8 @@ export class Calibrator {
     const xRS = meanX(KP.RIGHT_SHOULDER);
     const larguraOmbros = Math.abs(xLS - xRS);
 
+    const yOmbrosBase = (meanY(KP.LEFT_SHOULDER) + meanY(KP.RIGHT_SHOULDER)) / 2;
+
     if (hCorpo < 0.1 || larguraOmbros < 0.05) {
       return { ok: false, reason: 'low_confidence' };
     }
@@ -75,6 +77,7 @@ export class Calibrator {
       baseline: {
         hCorpo,
         yQuadrilBase,
+        yOmbrosBase,
         xCentroBase,
         larguraOmbros,
         capturedAt: performance.now(),

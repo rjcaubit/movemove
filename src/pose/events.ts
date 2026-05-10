@@ -11,9 +11,9 @@ import { CADENCE_THRESHOLDS } from '../tuning.ts';
 export class EventDetector extends EventTarget {
   private baseline: Baseline | null = null;
 
-  // jump
+  // jump — usa ombro (mais robusto que quadril: ombro raramente sai do frame)
   private lastJumpAt = 0;
-  private prevHipY: number | null = null;
+  private prevShoulderY: number | null = null;
   // duck
   private duckSince: number | null = null;
   // lane
@@ -34,7 +34,7 @@ export class EventDetector extends EventTarget {
   reset(): void {
     this.baseline = null;
     this.lastJumpAt = 0;
-    this.prevHipY = null;
+    this.prevShoulderY = null;
     this.duckSince = null;
     this.currentLane = 0;
     this.lastLaneChangeAt = 0;
@@ -63,6 +63,9 @@ export class EventDetector extends EventTarget {
   private hipX(kp: Keypoint[]): number {
     return (kp[KP.LEFT_HIP].x + kp[KP.RIGHT_HIP].x) / 2;
   }
+  private shoulderY(kp: Keypoint[]): number {
+    return (kp[KP.LEFT_SHOULDER].y + kp[KP.RIGHT_SHOULDER].y) / 2;
+  }
 
   private emit(ev: GameEvent): void {
     this.dispatchEvent(new CustomEvent('event', { detail: ev }));
@@ -70,20 +73,21 @@ export class EventDetector extends EventTarget {
 
   private detectJump(kp: Keypoint[], t: number): void {
     if (!this.baseline) return;
-    const yHip = this.hipY(kp);
+    // Usa ombro como referência: quadril sai do frame quando o jogador chega perto
+    // da câmera, mas o ombro fica visível mesmo em enquadramento meio-corpo.
+    const yShoulder = this.shoulderY(kp);
     const threshold =
-      this.baseline.yQuadrilBase - POSE_CONFIG.jumpThresholdFracHCorpo * this.baseline.hCorpo;
-    // Seção 3.3: cruza threshold E está em movimento ascendente (Δy negativo em coords de tela).
-    const ascending = this.prevHipY !== null && yHip < this.prevHipY;
+      this.baseline.yOmbrosBase - POSE_CONFIG.jumpThresholdFracHCorpo * this.baseline.hCorpo;
+    const ascending = this.prevShoulderY !== null && yShoulder < this.prevShoulderY;
     if (
-      yHip < threshold &&
+      yShoulder < threshold &&
       ascending &&
       t - this.lastJumpAt > POSE_CONFIG.jumpCooldownMs
     ) {
       this.lastJumpAt = t;
       this.emit({ type: 'jump', source: 'pose', t });
     }
-    this.prevHipY = yHip;
+    this.prevShoulderY = yShoulder;
   }
 
   private detectDuck(kp: Keypoint[], t: number): void {

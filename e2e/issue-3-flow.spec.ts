@@ -32,10 +32,10 @@ test.describe('Issue #3 — endless runner', () => {
     // 04 - Force baseline + skip pra Play
     await page.evaluate(() => {
       const w = window as unknown as { __movemoveDebug: {
-        forceBaseline: (b: { hCorpo: number; yQuadrilBase: number; xCentroBase: number; larguraOmbros: number; capturedAt: number }) => void;
+        forceBaseline: (b: { hCorpo: number; yQuadrilBase: number; yOmbrosBase: number; xCentroBase: number; larguraOmbros: number; capturedAt: number }) => void;
         skipToScene: (k: string) => void;
       }};
-      w.__movemoveDebug.forceBaseline({ hCorpo: 0.5, yQuadrilBase: 0.5, xCentroBase: 0.5, larguraOmbros: 0.2, capturedAt: performance.now() });
+      w.__movemoveDebug.forceBaseline({ hCorpo: 0.5, yQuadrilBase: 0.5, yOmbrosBase: 0.3, xCentroBase: 0.5, larguraOmbros: 0.2, capturedAt: performance.now() });
       w.__movemoveDebug.skipToScene('Play');
     });
     await page.waitForTimeout(800);
@@ -69,7 +69,7 @@ test.describe('Issue #3 — endless runner', () => {
         forceBaseline: (b: unknown) => void;
         skipToScene: (k: string) => void;
       }};
-      w.__movemoveDebug.forceBaseline({ hCorpo: 0.5, yQuadrilBase: 0.5, xCentroBase: 0.5, larguraOmbros: 0.2, capturedAt: performance.now() });
+      w.__movemoveDebug.forceBaseline({ hCorpo: 0.5, yQuadrilBase: 0.5, yOmbrosBase: 0.3, xCentroBase: 0.5, larguraOmbros: 0.2, capturedAt: performance.now() });
       w.__movemoveDebug.skipToScene('Play');
     });
     await page.waitForTimeout(500);

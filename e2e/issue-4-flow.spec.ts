@@ -28,7 +28,7 @@ test.describe('Issue #4 — fase 2 cardio', () => {
         forceBaseline: (b: unknown) => void;
         skipToScene: (k: string, d?: unknown) => void;
       }};
-      w.__movemoveDebug.forceBaseline({ hCorpo: 0.5, yQuadrilBase: 0.5, xCentroBase: 0.5, larguraOmbros: 0.2, capturedAt: performance.now() });
+      w.__movemoveDebug.forceBaseline({ hCorpo: 0.5, yQuadrilBase: 0.5, yOmbrosBase: 0.3, xCentroBase: 0.5, larguraOmbros: 0.2, capturedAt: performance.now() });
       w.__movemoveDebug.skipToScene('Play', { skipPrep: true });
     });
     await page.waitForTimeout(800);
@@ -90,7 +90,7 @@ test.describe('Issue #4 — fase 2 cardio', () => {
         forceBaseline: (b: unknown) => void;
         skipToScene: (k: string, d?: unknown) => void;
       }};
-      w.__movemoveDebug.forceBaseline({ hCorpo: 0.5, yQuadrilBase: 0.5, xCentroBase: 0.5, larguraOmbros: 0.2, capturedAt: performance.now() });
+      w.__movemoveDebug.forceBaseline({ hCorpo: 0.5, yQuadrilBase: 0.5, yOmbrosBase: 0.3, xCentroBase: 0.5, larguraOmbros: 0.2, capturedAt: performance.now() });
       w.__movemoveDebug.skipToScene('Play', { skipPrep: true });
     });
     await page.waitForTimeout(1500);

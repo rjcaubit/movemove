@@ -6,9 +6,9 @@ export type FruitKind = 'fruit' | 'bomb';
 const FRUIT_EMOJIS = ['🍉', '🍎', '🍌', '🍊', '🍇', '🥝', '🍑'];
 const BOMB_EMOJIS = ['💣', '🧨'];
 
-const GRAVITY_NORM = 1.2;    // normalized/s²
-const SPAWN_VY_MIN = -1.6;   // velocidade inicial pra cima
-const SPAWN_VY_MAX = -2.1;
+const GRAVITY_NORM = 0.7;    // normalized/s²
+const SPAWN_VY_MIN = -1.0;   // velocidade inicial pra cima
+const SPAWN_VY_MAX = -1.4;
 const SPAWN_VX_RANGE = 0.4;  // ± lateral
 
 export class Fruit {

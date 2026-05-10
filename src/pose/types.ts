@@ -36,6 +36,7 @@ export interface PoseFrame {
 export interface Baseline {
   hCorpo: number;       // distância vertical olhos→tornozelos
   yQuadrilBase: number; // Y médio do quadril em repouso
+  yOmbrosBase: number;  // Y médio dos ombros em repouso (referência pra detectar pulo)
   xCentroBase: number;  // X médio do quadril em repouso
   larguraOmbros: number;
   capturedAt: number;   // timestamp ms
