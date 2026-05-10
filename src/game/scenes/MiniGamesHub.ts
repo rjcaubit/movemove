@@ -50,6 +50,7 @@ const GAMES_BY_CATEGORY: Record<Category, GameCard[]> = {
     { title: strings.miniGames.catchTitle,  desc: strings.miniGames.catchDesc,  icon: '🪰', color: 0x4cd964, start: goCheck('CatchBicho') },
     { title: strings.miniGames.castorTitle, desc: strings.miniGames.castorDesc, icon: '🦫', color: 0x8b4513, start: (s) => s.scene.start('CastorModePicker') },
     { title: strings.miniGames.trunkTitle,  desc: strings.miniGames.trunkDesc,  icon: '🌀', color: 0xbf5af2, start: goCheck('TrunkTwist') },
+    { title: strings.miniGames.ninjaTitle,  desc: strings.miniGames.ninjaDesc,  icon: '🍉', color: 0xff453a, start: goCheck('NinjaFruit') },
   ],
 };
 

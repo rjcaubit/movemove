@@ -90,6 +90,18 @@ export const FX_SPEED_LINE_COUNT     = 12;
 export const FX_PARTICLE_COIN_COUNT  = 6;
 export const FX_PARTICLE_HIT_COUNT   = 4;
 
+// Ninja Fruit
+export const NINJA_VELOCITY_THRESHOLD = 1.2;           // H_corpo/s — velocidade mínima do pulso pra cortar
+export const NINJA_BOMB_GRACE_MS = 5000;               // só fruta nos primeiros 5s
+export const NINJA_BOMB_SPAWN_CHANCE_INITIAL = 0.05;
+export const NINJA_BOMB_SPAWN_CHANCE_MAX = 0.30;       // chega aqui ao longo de 30s
+export const NINJA_SPAWN_INTERVAL_MS_INITIAL = 1100;
+export const NINJA_SPAWN_INTERVAL_MS_MIN = 600;
+export const NINJA_SPAWN_INTERVAL_STEP_MS = 25;        // acelera/desacelera por slice/miss
+export const NINJA_HIT_RADIUS = 0.10;                  // raio normalizado do hit test
+export const NINJA_INTRO_MS = 3000;
+export const NINJA_INTRO_MIN_MOVEMENT = 0.05;          // deslocamento total pra detectar mão dominante
+
 export function getAgeGroup(): AgeGroup {
   try {
     const stored = localStorage.getItem('movemove.ageGroup');

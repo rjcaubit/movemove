@@ -1,11 +1,11 @@
 # CODEMAP — Movemove
 
-> Atualizado: 2026-05-10 (Issue #14 WIP — assets Kenney, novas cenas e sistemas)
+> Atualizado: 2026-05-10 (Issue #15 — NinjaFruit adicionado; Issue #14 WIP — assets Kenney, novas cenas e sistemas)
 > Fonte da verdade sobre estrutura, módulos e padrões do projeto.
 
 ## Status do projeto
 
-**Fase atual:** 2+ (cardio + missões + narrador) com Issue #14 em andamento adicionando catálogo de jogos lúdicos (DanceDance, ChickenGame, HelicopterGame, CastorGame, GuidedSession), gravador de movimentos (Rec), suporte 2 jogadores e assets reais Kenney. Hub categorizado (Cardio / Ritmo / Mira). Todo mini-jogo (incl. Runner) passa por `BodyCheck` antes de calibrar. Persistência via `localStorage` + IndexedDB (`idb-keyval`).
+**Fase atual:** 2+ (cardio + missões + narrador) com Issue #14 WIP (catálogo de jogos lúdicos, assets Kenney, 2P, Rec) e Issue #15 adicionando NinjaFruit (cortar frutas com mão dominante, evitar bombas). Hub categorizado (Cardio / Ritmo / Mira — 4 jogos). Todo mini-jogo (incl. Runner) passa por `BodyCheck` antes de calibrar. Persistência via `localStorage` + IndexedDB (`idb-keyval`).
 
 **Frontend-only por enquanto:** o `docker-compose.yml` só sobe o `frontend` (nginx servindo `dist/`). Backend e DB estão **comentados** no compose — quando entrarem, seguirão as portas-padrão da workspace (3301 / 55432).
 
@@ -61,7 +61,7 @@ movemove/
 │  └─ game/                      # camada Phaser
 │     ├─ orchestrator.ts         # boot Phaser.Game; AppRefs em registry; 2P stream
 │     ├─ config.ts               # GAME_CONFIG (mundo pseudo-3D + zonas + falling mode)
-│     ├─ scenes/                 # cenas Phaser (25 cenas ativas)
+│     ├─ scenes/                 # cenas Phaser (26 cenas ativas)
 │     ├─ entities/               # objetos no mundo (Player, Obstacle, Coin, NPCs, etc.)
 │     ├─ systems/                # gameplay systems (energia, missões, áudio, road, FX)
 │     ├─ storage/                # ProfileStore, RunHistoryStore, RecordedExercisesStore
@@ -114,6 +114,7 @@ Todas registradas no `orchestrator.ts` (`new Phaser.Game({ scene: [...] })`).
 | `ChickenGame` | Mini-game | Galinha — flap+scratch (70s) |
 | `DanceDance` | Mini-game | DDR com pictogramas (~75s) |
 | `HelicopterGame` | Mini-game | Helicóptero — pula pra subir (60s, gravidade progressiva) |
+| `NinjaFruit` | Mini-game | Corta frutas, evita bombas — mão dominante auto-detectada, 3 vidas, combo |
 | `CastorGame` | Mini-game | Whack-a-mole 1P/2P (60s) |
 | `CastorModePicker` | Mini-game | Picker 1P/2P → BodyCheck → Castor |
 | `GuidedSession` | Sessão | Ciclos rest/exercise (5/7/10/15min) |
@@ -157,6 +158,7 @@ Todas registradas no `orchestrator.ts` (`new Phaser.Game({ scene: [...] })`).
 | #4 | feat | Fase 2 — exercício saudável + mini-jogos | Mergeada ✅ |
 | #5 | feat | Fase 3 — conteúdo, progressão, 2P | Aberta (parcialmente coberta por #14) |
 | #14 | improve | Catálogo de jogos lúdicos + assets Kenney + 2P + Rec | **WIP** |
+| #15 | feat | Ninja Fruit — mini-jogo de cortar frutas com mão dominante | **WIP** |
 
 ## Achados acumulados
 
