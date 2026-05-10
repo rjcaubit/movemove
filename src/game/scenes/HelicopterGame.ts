@@ -10,16 +10,22 @@ import { narratorLines } from '../i18n/narratorLines.ts';
 import type { GameEvent } from '../../pose/types.ts';
 
 const DURATION_MS = 60_000;
-// Gravidade progressiva — começa suave e cresce até o teto em 8s, dando
-// margem pro jogador entrar no ritmo de pulos antes da física apertar.
-const GRAVITY_INITIAL = 0.15;  // normalized/s² (era 0.58 fixo)
-const GRAVITY_MAX = 0.55;
-const GRAVITY_RAMP_MS = 8_000;
-const JUMP_VY = -0.40;         // normalized/s (impulso pra cima)
-const MAX_FALL_VY = 0.85;
+// Gravidade progressiva — começa BEM suave e cresce devagar até o teto em 12s.
+const GRAVITY_INITIAL = 0.08;  // normalized/s² (queda inicial bem leve)
+const GRAVITY_MAX = 0.32;       // queda no fim ainda controlável
+const GRAVITY_RAMP_MS = 12_000;
+const MAX_FALL_VY = 0.55;       // velocidade terminal de queda (era 0.85)
+// Pulo
+const JUMP_VY = -0.55;          // impulso forte pra cima
+const JUMP_STACK_FACTOR = 0.7;  // pulo enquanto já sobe adiciona 70% do impulso
+const JUMP_VY_CAP = -1.10;      // teto de velocidade ascendente
+// Hover — após um pulo, gravidade fica reduzida por 1.5s (rotor ainda dando força)
+const HOVER_DURATION_MS = 1500;
+const HOVER_GRAVITY_FLOOR = 0.15; // logo após pulo, gravidade vira 15% da normal
+// Posição
 const FLOOR_Y = 0.84;
 const CEIL_Y = 0.06;
-const START_Y = 0.10;          // começa lá em cima pra dar fôlego inicial
+const START_Y = 0.10;
 const LIVES = 3;
 const HIT_INVINCIBILITY_MS = 1500;
 const FLASH_INTERVAL_MS = 120;
@@ -47,6 +53,7 @@ export class HelicopterGame extends Phaser.Scene {
   private session: string[] = [];
   private eventListener: ((e: Event) => void) | null = null;
   private flashTimer = 0;
+  private lastJumpAt = -Infinity;
 
   constructor() { super('HelicopterGame'); }
 
@@ -62,6 +69,7 @@ export class HelicopterGame extends Phaser.Scene {
     this.startedAt = performance.now();
     this.lastHitAt = -Infinity;
     this.flashTimer = 0;
+    this.lastJumpAt = -Infinity;
 
     addThemedFrame(this, 'helicopter');
     addTitleBanner(this, width / 2, 50, strings.miniGames.helicopterTitle, 0x4cd964, 0xffffff);
@@ -108,7 +116,15 @@ export class HelicopterGame extends Phaser.Scene {
 
   private onJump(): void {
     if (this.done) return;
-    this.heliVY = JUMP_VY;
+    if (this.heliVY < 0) {
+      // Já estava subindo — pulo empilha impulso (pumping up). Limita pelo cap
+      // pra não disparar pro infinito se o jogador pular freneticamente.
+      this.heliVY = Math.max(JUMP_VY_CAP, this.heliVY + JUMP_VY * JUMP_STACK_FACTOR);
+    } else {
+      // Estava caindo / parado — impulso completo
+      this.heliVY = JUMP_VY;
+    }
+    this.lastJumpAt = performance.now();
     // Pulso do rotor — squash visual no eixo Y
     this.tweens.add({
       targets: this.heli,
@@ -118,9 +134,18 @@ export class HelicopterGame extends Phaser.Scene {
     });
   }
 
-  private currentGravity(elapsed: number): number {
+  private currentGravity(elapsed: number, now: number): number {
     const ramp = Math.min(1, elapsed / GRAVITY_RAMP_MS);
-    return GRAVITY_INITIAL + (GRAVITY_MAX - GRAVITY_INITIAL) * ramp;
+    const base = GRAVITY_INITIAL + (GRAVITY_MAX - GRAVITY_INITIAL) * ramp;
+    // Hover phase: logo após o pulo a gravidade vira HOVER_GRAVITY_FLOOR×base
+    // e cresce linearmente de volta a 1× ao longo de HOVER_DURATION_MS.
+    const sinceJump = now - this.lastJumpAt;
+    if (sinceJump < HOVER_DURATION_MS) {
+      const k = sinceJump / HOVER_DURATION_MS; // 0 → 1
+      const factor = HOVER_GRAVITY_FLOOR + (1 - HOVER_GRAVITY_FLOOR) * k;
+      return base * factor;
+    }
+    return base;
   }
 
   update(_time: number, delta: number): void {
@@ -135,8 +160,8 @@ export class HelicopterGame extends Phaser.Scene {
 
     if (elapsed >= DURATION_MS) { this.finish(true); return; }
 
-    // Física com gravidade progressiva
-    const g = this.currentGravity(elapsed);
+    // Física com gravidade progressiva + hover após pulo
+    const g = this.currentGravity(elapsed, now);
     this.heliVY = Math.min(MAX_FALL_VY, this.heliVY + g * dt);
     this.heliY += this.heliVY * dt;
 
