@@ -2,6 +2,20 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Todas as datas são UTC.
 
+## 2026-05-10 — #16 — feat: CanoeGame — mini-jogo de remo top-down
+
+### Added
+- Novo mini-jogo `CanoeGame` na categoria "Cardio" do hub: remo alternado L/R em rio top-down, primeiro jogo sem `CameraBackdrop` na tela principal.
+- Avatar de caiaque desenhado via Phaser Graphics (oval laranja + bonequinho de cima + dois remos animados); rio com paredes de cânion scrollando verticalmente.
+- PIP camera (HTML overlay com `<video>` + canvas usando `KeypointOverlay`) no canto bottom-right (~22vw, clamp 80–140 px), reusa stream da câmera principal — usuário verifica detecção de pose sem ocupar tela.
+- `RowingDetector` (`src/game/systems/rowingDetector.ts`): combina `WristVelocityTracker` + direção Y do pulso, alternância obrigatória L↔R, refractory de 420 ms por lado.
+- Pedras spawnam no topo a cada 2.2 s; colisão freia a canoa (`speed *= 0.35`) + screenShake + flash + Narrator "Cuidado!".
+- Indicadores L/R hexagonais na base flasham no stroke detectado.
+- Wake trail (triângulo branco) atrás da canoa, fade por velocidade.
+- Sessão de 60 s; pontuação em metros (`distanceM` × `CANOE_METERS_PER_UNIT`).
+- Keyboard fallback A/D quando `?debug=1` (via `KeyboardDebug.isEnabledByQuery`).
+- Spec: `docs/sdd/ISSUE_16/02-spec.md`
+
 ## 2026-05-10 — #15 — feat: Ninja Fruit — mini-jogo de cortar frutas com mão dominante
 
 ### Added
