@@ -98,7 +98,7 @@ export function addTitleBanner(
   return scene.add.container(x, y, [shadow, bg, ribbon, t]).setDepth(60);
 }
 
-export type Theme = 'ghost' | 'trunk' | 'bell' | 'chicken' | 'dance' | 'castor' | 'bird';
+export type Theme = 'ghost' | 'trunk' | 'bell' | 'chicken' | 'dance' | 'castor' | 'helicopter';
 
 interface ThemeColors {
   topBand: number;
@@ -114,7 +114,7 @@ const THEMES: Record<Theme, ThemeColors> = {
   chicken: { topBand: 0x2a4a1a, bottomBand: 0x141a08, accent: 0xffae0a, vignette: 0x141a08 },
   dance:   { topBand: 0x1a0a4a, bottomBand: 0x080214, accent: 0xff2bd6, vignette: 0x080214 },
   castor:  { topBand: 0x2a1400, bottomBand: 0x0a0600, accent: 0x8b4513, vignette: 0x0a0600 },
-  bird:    { topBand: 0x0a2a4a, bottomBand: 0x1a3d0a, accent: 0x4cd964, vignette: 0x050e14 },
+  helicopter: { topBand: 0x0a2a4a, bottomBand: 0x1a3d0a, accent: 0x4cd964, vignette: 0x050e14 },
 };
 
 /**

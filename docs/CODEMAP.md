@@ -1,145 +1,180 @@
 # CODEMAP — Movemove
 
-> Atualizado: 2026-04-27 (Issue #4 — Fase 2 + mini-jogos)
-> Fonte da verdade sobre estrutura, módulos e padrões.
+> Atualizado: 2026-05-10 (Issue #14 WIP — assets Kenney, novas cenas e sistemas)
+> Fonte da verdade sobre estrutura, módulos e padrões do projeto.
 
 ## Status do projeto
-**Fase atual:** 2 (cardio + missões + narrador + mini-jogos lúdicos). Persistência via IndexedDB (`idb-keyval`).
+
+**Fase atual:** 2+ (cardio + missões + narrador) com Issue #14 em andamento adicionando catálogo de jogos lúdicos (DanceDance, ChickenGame, HelicopterGame, CastorGame, GuidedSession), gravador de movimentos (Rec), suporte 2 jogadores e assets reais Kenney. Hub categorizado (Cardio / Ritmo / Mira). Todo mini-jogo (incl. Runner) passa por `BodyCheck` antes de calibrar. Persistência via `localStorage` + IndexedDB (`idb-keyval`).
+
+**Frontend-only por enquanto:** o `docker-compose.yml` só sobe o `frontend` (nginx servindo `dist/`). Backend e DB estão **comentados** no compose — quando entrarem, seguirão as portas-padrão da workspace (3301 / 55432).
 
 ## Stack
-- **Bundler/dev:** Vite 6+ (HTTPS local via `vite-plugin-mkcert`)
-- **Linguagem:** TypeScript 5.6+
-- **Pose detection:** `@mediapipe/tasks-vision` (Pose Landmarker, modelo `lite`)
-- **Engine de jogo:** **Phaser 4.x** (ADR-4 do study #1) — `import * as Phaser` (ESM sem default)
-- **i18n:** `@lingui/core@^4` runtime (catalog `pt-BR.po` quando compilado; identity fallback enquanto vazio)
-- **Persistência:** `localStorage` (recorde, settings, age, audio volumes) + **`idb-keyval@^6`** (profile + runHistory schema v1)
-- **Áudio:** Phaser.Sound + Web Speech API (TTS pt-BR pro narrador)
-- **Deploy:** Cloudflare Pages
+
+- **Bundler/dev:** Vite 6 (HTTPS local via `vite-plugin-mkcert`)
+- **Linguagem:** TypeScript 5.6 (build via `tsc -b && vite build`)
+- **Engine de jogo:** **Phaser 4.x** (ESM sem default — `import * as Phaser`) — ADR-4
+- **Pose detection:** `@mediapipe/tasks-vision@^0.10` (Pose Landmarker, modelo `lite`, 33 keypoints)
+- **i18n:** `@lingui/core@^4` (catalog `pt-BR.po` ainda vazio → identity fallback via `i18n._()`)
+- **Persistência:** `localStorage` (recorde, settings, idade, volumes) + `idb-keyval@^6` (profile, runHistory, recordedExercises)
+- **Áudio:** `Phaser.Sound` + Web Speech API (TTS pt-BR pro narrador) + `MidiPlayer` (sintetizador WebAudio próprio para `@tonejs/midi`)
+- **Deploy:** Cloudflare Pages (static); container Docker com nginx para self-host
 - **E2E:** Playwright (HTTPS via mkcert; `--use-fake-device`)
 
 ## Estrutura
 
 ```
 movemove/
-├─ EXERGAME_PROJETO.md
+├─ EXERGAME_PROJETO.md           # spec original do produto
+├─ docker-compose.yml            # só frontend (nginx)
+├─ Dockerfile                    # nginx:alpine servindo dist/
+├─ docker/nginx.conf             # SPA fallback + cache + proxy /api comentado
 ├─ docs/
-│  ├─ CODEMAP.md            # ESTE arquivo
-│  ├─ ARCHITECTURE.md
+│  ├─ CODEMAP.md                 # ESTE arquivo
+│  ├─ MODULES.md                 # tabela módulos × responsabilidades
+│  ├─ GAMES.md                   # mini-games (mecânica, gestos, duração)
+│  ├─ ARCHITECTURE.md            # camadas, comunicação, runtime
 │  ├─ CHANGELOG.md
-│  └─ sdd/ISSUE_{n}/
+│  ├─ movimentos.md              # catálogo de movimentos detectáveis + pictogramas
+│  └─ sdd/ISSUE_{n}/             # specs SDD
 ├─ src/
-│  ├─ main.ts               # bootstrap mínimo (delega ao orchestrator) + __movemoveDebug
+│  ├─ main.ts                    # bootstrap + ajuste retrato/paisagem + __movemoveDebug
+│  ├─ tuning.ts                  # constantes ajustáveis (velocidade, FX, age groups)
 │  ├─ styles.css
-│  ├─ pose/                 # camada de pose (invariante entre fases)
-│  │  ├─ types.ts
-│  │  ├─ config.ts
-│  │  ├─ poseDetector.ts
-│  │  ├─ smoother.ts
-│  │  ├─ calibration.ts
-│  │  └─ events.ts
+│  ├─ pose/                      # camada de pose (invariante entre cenas)
+│  │  ├─ types.ts                # KP enum, Keypoint, PoseFrame, Baseline, GameEvent
+│  │  ├─ config.ts               # POSE_CONFIG (emaAlpha, thresholds)
+│  │  ├─ poseDetector.ts         # MediaPipe wrapper + getUserMedia (suporta 2 streams)
+│  │  ├─ smoother.ts             # EMA α=0.5 (default)
+│  │  ├─ oneEuroSmoother.ts      # One Euro Filter alternativo (não-default)
+│  │  ├─ calibration.ts          # 4 baselines em 2s contínuos
+│  │  ├─ events.ts               # 6 heurísticas (jump/duck/lane/jack/arms_up/cadence)
+│  │  └─ spatialQueries.ts       # handAt, trunkRotationAngle, bothHandsAbove, etc.
 │  ├─ debug/
-│  │  └─ keyboard.ts        # ?debug=1 keyboard fallback
+│  │  └─ keyboard.ts             # ?debug=1 keyboard fallback
 │  ├─ i18n/
-│  │  └─ strings.ts         # estendido com chaves tutorial/play/gameOver/orientation
-│  ├─ ui/
-│  │  ├─ debugPanel.ts      # mantido (HTML por cima do canvas)
-│  │  ├─ keypointOverlay.ts # reusado em cameraPreview
-│  │  └─ errorScreen.ts     # fallback fatal HTML
-│  └─ game/                 # camada de jogo Phaser 4
-│     ├─ orchestrator.ts    # pose layer + Phaser.Game; refs via game.registry (incl. profile/missions)
-│     ├─ config.ts          # GAME_CONFIG (energy/zones/audio/etc)
-│     ├─ scenes/
-│     │  ├─ Boot.ts / Welcome.ts / Loading.ts / Tutorial.ts / Calibration.ts
-│     │  ├─ Play.ts         # loop principal + cadence/jacks/arms_up + EnergyBar + WaterBreak trigger
-│     │  ├─ GameOver.ts     # fallback (Summary é o destino default)
-│     │  ├─ Demo.ts         # ?demo=1 cenário sem câmera
-│     │  ├─ Settings.ts     # ⭐ Fase 2 — sliders volume, toggles narrator/captions, radio age
-│     │  ├─ Summary.ts      # ⭐ Fase 2 — distância+coins+jacks+...+sparkline+missions
-│     │  ├─ WaterBreak.ts   # ⭐ Fase 2 — modal 30s a cada 8min cumulativos
-│     │  ├─ MiniGamesHub.ts # ⭐ Fase 2 (refine) — hub dos 3 jogos
-│     │  ├─ CatchBicho.ts / TrunkTwist.ts / BellRinger.ts # ⭐ mini-jogos
-│     │  └─ MiniGameResult.ts                              # ⭐
-│     ├─ entities/
-│     │  ├─ Player.ts / Obstacle.ts / Coin.ts
-│     │  ├─ JackZone.ts / ArmsZone.ts # ⭐ Fase 2
-│     │  └─ Bicho.ts / TrunkTarget.ts / Bell.ts # ⭐ mini-jogos (procedurais)
-│     ├─ systems/
-│     │  ├─ pseudo3d.ts / road.ts / parallax.ts / spawner.ts / scoring.ts / collision.ts / rng.ts
-│     │  ├─ energy.ts        # ⭐ EnergySystem (4 tiers, multiplicador velocidade)
-│     │  ├─ zones.ts         # ⭐ ZoneManager (JackZone+ArmsZone)
-│     │  ├─ shield.ts        # ⭐ ShieldEffect (1 carga)
-│     │  ├─ missions.ts      # ⭐ MissionSystem (carrega missions.json, seed por dia, tick)
-│     │  ├─ audioBus.ts      # ⭐ música loop + ducking
-│     │  └─ narrator.ts      # ⭐ Web Speech API pt-BR
-│     ├─ storage/            # ⭐ Fase 2
-│     │  ├─ profile.ts       # ProfileStore (idb-keyval, schema v1, migra do localStorage)
-│     │  └─ runHistory.ts    # RunHistoryStore (últimas 30 partidas FIFO)
+│  │  └─ strings.ts              # wrapper @lingui/core (identity até catalog compilar)
+│  ├─ ui/                        # overlays HTML (acima do canvas)
+│  │  ├─ debugPanel.ts
+│  │  ├─ keypointOverlay.ts      # esqueleto + HandGlow opcional
+│  │  └─ errorScreen.ts          # fallback fatal
+│  └─ game/                      # camada Phaser
+│     ├─ orchestrator.ts         # boot Phaser.Game; AppRefs em registry; 2P stream
+│     ├─ config.ts               # GAME_CONFIG (mundo pseudo-3D + zonas + falling mode)
+│     ├─ scenes/                 # cenas Phaser (25 cenas ativas)
+│     ├─ entities/               # objetos no mundo (Player, Obstacle, Coin, NPCs, etc.)
+│     ├─ systems/                # gameplay systems (energia, missões, áudio, road, FX)
+│     ├─ storage/                # ProfileStore, RunHistoryStore, RecordedExercisesStore
 │     ├─ i18n/
-│     │  └─ narratorLines.ts # ⭐ Fase 2 — frases por evento via @lingui
-│     └─ ui/
-│        ├─ hud.ts / cameraPreview.ts / orientationGuard.ts
-│        ├─ energyBar.ts     # ⭐ Fase 2 — barra com cor por tier + BPM
-│        └─ sparkline.ts     # ⭐ Fase 2 — SVG inline com downsample
+│     │  └─ narratorLines.ts     # frases do narrador por evento
+│     └─ ui/                     # overlays Phaser (HUD, EnergyBar, CameraBackdrop, FX)
 ├─ public/
-│  ├─ manifest.webmanifest  # PWA básico, display: browser
-│  ├─ icons/                # 192/512 placeholder
-│  ├─ models/pose_landmarker_lite.task  # gitignored, baixado em setup
-│  └─ wasm/vision_wasm_internal.{wasm,js}
-├─ e2e/
-│  ├─ issue-3-flow.spec.ts                  # CT05/CT04/CT08 — passa
-│  └─ issue-2-legacy.spec.ts.skip           # arquivado (HTML Fase 0 removido)
-└─ load-tests/results/issue-{n}-journey/
-   ├─ README.md
-   └─ screenshots/
+│  ├─ manifest.webmanifest       # PWA básico (display: browser — sem standalone)
+│  ├─ icons/                     # 192/512
+│  ├─ models/pose_landmarker_lite.task    # gitignored, baixado em `npm run setup`
+│  ├─ wasm/vision_wasm_internal.{wasm,js} # copiados de @mediapipe/tasks-vision
+│  ├─ data/missions.json         # 7 templates de missões diárias
+│  └─ assets/
+│     ├─ sprites/                # ~64 sprites (Kenney + custom): inimigos, animais,
+│     │                          # power-ups, obstáculos, cenário, pictogramas
+│     ├─ kenney_desert/          # background pack
+│     ├─ bg/                     # backgrounds custom
+│     ├─ audio/                  # MIDI tracks + SFX
+│     ├─ fonts/                  # VT323 e similares
+│     └─ sounds/                 # SFX tradicionais
+├─ e2e/                          # Playwright
+│  └─ issue-3-flow.spec.ts       # CT05/CT04/CT08
+├─ load-tests/
+└─ keys/                         # gitignored — certs locais
 ```
+
+## Cenas Phaser registradas
+
+Todas registradas no `orchestrator.ts` (`new Phaser.Game({ scene: [...] })`).
+
+| Cena | Categoria | Função |
+|------|-----------|--------|
+| `Boot` | Infra | Carrega assets iniciais |
+| `Welcome` | Menu | Tela inicial com botões "Jogar" / "Configurações" |
+| `Loading` | Infra | Inicializa MediaPipe + abre câmera (idempotente) |
+| `Tutorial` | Onboarding | 3 slides (1× por device) |
+| `Calibration` | Pose | Captura 4 baselines |
+| `BodyCheck` | Pose | Valida enquadramento antes de mini-jogo (1P/2P) |
+| `Play` | Runner | Endless runner pseudo-3D (cardio principal) |
+| `GameOver` | Runner | Fallback (Summary é o destino default) |
+| `Demo` | Debug | `?demo=1` cenário sem câmera/colisão |
+| `Settings` | Menu | Volumes, narrador, captions, idade |
+| `Summary` | Runner | Pós-corrida: dist+coins+sparkline+missões |
+| `WaterBreak` | Runner | Modal a cada 8min cumulativos |
+| `MiniGamesHub` | Menu | Hub dos mini-games |
+| `MiniGameResult` | Mini-game | Tela de resultado + "next" da Sessão Guiada |
+| `CatchBicho` | Mini-game | Pega o bicho (60s) |
+| `TrunkTwist` | Mini-game | Roda tronco (~60s) |
+| `BellRinger` | Mini-game | Toca o sino (75s) |
+| `ChickenGame` | Mini-game | Galinha — flap+scratch (70s) |
+| `DanceDance` | Mini-game | DDR com pictogramas (~75s) |
+| `HelicopterGame` | Mini-game | Helicóptero — pula pra subir (60s, gravidade progressiva) |
+| `CastorGame` | Mini-game | Whack-a-mole 1P/2P (60s) |
+| `CastorModePicker` | Mini-game | Picker 1P/2P → BodyCheck → Castor |
+| `GuidedSession` | Sessão | Ciclos rest/exercise (5/7/10/15min) |
+| `GuidedSessionPicker` | Sessão | Picker de duração |
+| `Rec` | Ferramenta | Gravador de movimentos (15s) + replay |
+
+> Detalhe de cada jogo (gestos, mecânica, duração, scoring): ver **`docs/GAMES.md`**.
 
 ## Padrões canônicos
 
-- **Pose layer abstrai keypoints:** cenas Phaser nunca leem keypoints crus. Subscrevem ao `EventDetector` (bus `EventTarget`) e recebem `GameEvent`.
-- **Refs compartilhadas via `Phaser.Game.registry`** (chave `'refs'` → `AppRefs`). Cenas usam helper `getRefs(scene)`.
-- **Pose layer com RAF próprio**, independente do `Phaser.Game.loop` — preserva fluxo de calibração/eventos mesmo quando cena Phaser pausa.
-- **Thresholds em fração de H_corpo** na pose layer; coordenadas de tela em px no game layer.
-- **Strings em PT-BR** centralizadas em `src/i18n/strings.ts`. Sem framework runtime.
-- **Modo debug `?debug=1`** sempre disponível: keyboard fallback + painel debug HTML por cima do canvas. `?seed=N` torna spawning determinístico (Playwright). `?fps=1` mostra FPS no HUD.
+- **Cenas Phaser nunca leem keypoints crus.** Subscrevem ao bus do `EventDetector` (`EventTarget`) ou usam helpers `spatialQueries.ts` (`handAt`, `trunkRotationAngle`, etc.). Garantia: pose layer é trocável.
+- **Refs compartilhadas via `Phaser.Game.registry`** (chave `'refs'` → `AppRefs`). Helper `getRefs(scene)`.
+- **Pose layer com RAF próprio**, independente do `Phaser.Game.loop` — calibração e eventos não param se cena pausa.
+- **Suporte 2 jogadores:** detector emite `onFrame2`, smoother próprio (`smoother2`), e `AppRefs.onSmoothedFrameP2` permite inscrever segundo stream (usado em `CastorGame` 2P).
+- **Thresholds proporcionais ao corpo detectado** (`H_corpo`, fração de altura), nunca em pixels.
+- **Strings em PT-BR** centralizadas em `src/i18n/strings.ts` via `i18n._()` (Lingui).
+- **Modo debug `?debug=1`:** keyboard fallback completo (Space/↑↓←→/J/R) + painel debug HTML por cima do canvas. `?seed=N` torna spawning determinístico. `?demo=1` ativa cena Demo. `?landscape=1` / `?portrait=1` força orientação. `?dance=check` modo curadoria do DanceDance.
 - **Imports relativos com extensão explícita** (`./Player.ts`).
-- **Phaser ESM:** `import * as Phaser from 'phaser'` (Phaser 4 não exporta default).
-- **Sons gated por `cache.audio.exists()`** — chamadas `play()` no-op se asset não carregou.
+- **Phaser ESM:** `import * as Phaser from 'phaser'`.
+- **Sons gated por `cache.audio.exists()`** — `play()` no-op se asset não carregou.
+- **Texturas com fallback procedural:** `textureGen.ensureTexture()` gera placeholder se PNG não existe.
 - **Sem `display: standalone` no manifest** (risco iOS PWA + getUserMedia).
-- **Spawning seedável** via `?seed=N` pra testes determinísticos.
+- **Spawning seedável** via `?seed=N`.
+- **Orientação responsiva:** `main.ts` ajusta `GAME_CONFIG.width/height` para casar com viewport real (retrato → 720×altura-proporcional).
 
 ## ADRs aplicáveis (do study #1)
 
-- **ADR-1** — strings em `src/i18n/strings.ts` sem framework de runtime (até Fase 2).
-- **ADR-2** (revisado) — system fonts HTML + bitmap font canvas desde Fase 1. **Fase 1 cumpre parcialmente:** usa `ui-monospace` bold com stroke como aproximação; bitmap font real fica pra polish issue.
-- **ADR-4** — Phaser 4 (não Phaser 3) ✅ adotado.
-- **ADR-5** — EMA α=0.5 mantido; reavaliação One Euro fica pra Fase 2.
-- **ADR-6** — pseudo-3D Enduro/Out Run, sprites Kenney, paralax 3+ camadas. **Fase 1 cumpre parcialmente:** pseudo-3D + paralax implementados; sprites Kenney substituídos por texturas procedurais (placeholder), polish visual fica pra issue separada.
+- **ADR-1** ✅ — strings em `src/i18n/strings.ts`. **Fase 2 evoluiu** para wrapper `@lingui/core` (catalog vazio = identity fallback).
+- **ADR-2** ⏳ parcial — system fonts (`VT323`, `ui-monospace`) com stroke como aproximação de bitmap font; bitmap font real continua follow-up.
+- **ADR-4** ✅ — Phaser 4 adotado.
+- **ADR-5** ⏳ — EMA α=0.5 default; `OneEuroSmoother` existe mas não-ativado.
+- **ADR-6** ⏳ parcial — pseudo-3D Enduro/Out Run + paralax adotados; sprites Kenney **agora carregados** (Issue #14, ainda em refinamento) com fallback procedural via `textureGen`.
 
 ## Histórico SDD
 
 | Issue | Tipo | Título | Status |
 |-------|------|--------|--------|
 | #1 | study | Viabilidade técnica e roadmap das Fases 0-3 | Aberta (pai conceitual) |
-| #2 | feat | Fase 0 — PoC de detecção de pose | Encerrada (CT01/RNF01-03 deferidos pra #3) |
+| #2 | feat | Fase 0 — PoC de detecção de pose | Encerrada |
 | #3 | feat | Fase 1 — endless runner mínimo | Mergeada ✅ |
-| #4 | feat | Fase 2 — camada de exercício saudável + mini-jogos | **Em andamento — PR aberta** |
-| #5 | feat | Fase 3 — conteúdo, progressão, 2P | Aguardando #4 |
+| #4 | feat | Fase 2 — exercício saudável + mini-jogos | Mergeada ✅ |
+| #5 | feat | Fase 3 — conteúdo, progressão, 2P | Aberta (parcialmente coberta por #14) |
+| #14 | improve | Catálogo de jogos lúdicos + assets Kenney + 2P + Rec | **WIP** |
 
 ## Achados acumulados
 
-- **RNF04 (`<5MB` bundle)** — irreal. Fase 0: ~9MB gzip. Fase 1: ~10MB gzip (+Phaser 4 ~250KB +HUD +texturas procedurais).
-- **iOS PWA + `getUserMedia`** — não usar `display: standalone` até Fase 3 ter mitigação.
-- **Phaser 4** estável em abr/2026. ESM sem default export — usar namespace import.
-- **Vite + mkcert obriga Playwright HTTPS** — `playwright.config.ts` baseURL `https://localhost:5173` + `ignoreHTTPSErrors: true`.
-- **localStorage suficiente** pra recorde/mute/tutorial; IndexedDB chega na Fase 2 com missões/perfil.
+- **Bundle ~10MB gzip** (Phaser 4 ~250KB + MediaPipe lite ~5.5MB + WASM ~11MB descompactado). RNF04 (`<5MB`) deprecado.
+- **iOS PWA + getUserMedia** — não usar `display: standalone`.
+- **Phaser 4 ESM sem default export** — sempre `import * as Phaser`.
+- **Vite + mkcert obriga Playwright HTTPS** (baseURL `https://localhost:5173`, `ignoreHTTPSErrors: true`).
+- **MidiPlayer caseiro tem qualidade limitada** (oscilador triangle + ruído branco para drums) — para produção, considerar fluidsynth offline.
+- **2 streams de pose simultâneos** funcionam via `poseDetector.onFrame2` (jogador 2 = lado direito do frame, estimativa de bounding box).
 
-## Polish pendente (follow-up issue)
+## Polish pendente
 
-Decisões autônomas da #3 que viram issue separada pós-merge:
-- Substituir texturas procedurais por sprites reais Kenney + edermunizz (ADR-6 completo).
-- Substituir `Text` monoespace por bitmap font pixel art (ADR-2 completo).
-- Carregar sons reais Kenney (`jump`/`coin`/`hit`/`gameover`).
+- ADR-2 completo (bitmap font pixel art).
+- Música real curada + voz neural pré-gravada (tornar narrador menos sintético).
+- Sprites Kenney 100% (alguns ainda procedurais — coin, log, banner, etc.).
+- Catalog `pt-BR.po` compilado (hoje strings rodam em identity fallback).
 
-## Próxima fase
+## Próximas fases
 
-Issue #4 (Fase 2) — adiciona cadência de corrida medida, polichinelos como power-up, braços-pra-cima como escudo, narrador motivador, missões diárias, IndexedDB.
+- **Fase 3 (#5)** — troca pose driver para MoveNet MultiPose (2P estável), mundos/temas plugáveis, múltiplos personagens, modo dois jogadores em todos os jogos.
+- **Backend** — quando entrar, descomentar serviço no `docker-compose.yml` e proxy `/api/` no `nginx.conf` (porta 3301 conforme convenção da workspace).

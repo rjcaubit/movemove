@@ -1,5 +1,33 @@
 import type { AudioBus } from './audioBus.ts';
 
+let _voicePT: SpeechSynthesisVoice | null = null;
+let _voiceListenerInstalled = false;
+
+function pickBestVoice(lang: string): SpeechSynthesisVoice | null {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  const candidates = voices.filter((v) => v.lang.startsWith(lang));
+  if (candidates.length === 0) return null;
+  return (
+    candidates.find((v) => /enhanced|premium|neural/i.test(v.name)) // iOS Enhanced/Premium, Android Neural
+    ?? candidates.find((v) => /google/i.test(v.name))                // Android Google TTS
+    ?? candidates.find((v) => /microsoft/i.test(v.name))             // Edge / Windows
+    ?? candidates.find((v) => !v.localService)                       // qualquer voz de rede
+    ?? candidates[0]
+  );
+}
+
+function ensureVoiceCache(): void {
+  if (_voiceListenerInstalled || typeof window === 'undefined' || !window.speechSynthesis) return;
+  _voiceListenerInstalled = true;
+  const refresh = (): void => { _voicePT = pickBestVoice('pt'); };
+  refresh();
+  // Vozes podem chegar de forma assíncrona em vários browsers.
+  window.speechSynthesis.onvoiceschanged = refresh;
+  setTimeout(refresh, 100);
+  setTimeout(refresh, 800);
+}
+
 export class Narrator {
   private audioBus: AudioBus | null;
   private enabled: boolean;
@@ -9,6 +37,7 @@ export class Narrator {
   constructor(audioBus: AudioBus | null, enabled = true) {
     this.audioBus = audioBus;
     this.enabled = enabled;
+    ensureVoiceCache();
   }
 
   speak(text: string, priority = 1): void {
@@ -26,9 +55,15 @@ export class Narrator {
     try {
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'pt-BR';
-      utter.rate = 1.05;
-      utter.pitch = 1.1;
+      const voice = _voicePT ?? pickBestVoice('pt');
+      if (voice) {
+        utter.voice = voice;
+        utter.lang = voice.lang;
+      } else {
+        utter.lang = 'pt-BR';
+      }
+      utter.rate = 0.92;   // mais natural que 1.05
+      utter.pitch = 1.0;   // sem subir o pitch (era 1.1 → soava sintético)
       if (this.audioBus) {
         this.audioBus.duck();
         utter.onend = (): void => this.audioBus?.restore(500);

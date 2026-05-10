@@ -25,11 +25,11 @@ export const narratorLines = {
   chickenMiss: (): string => pick([t('Concentra!'), t('Olha o ritmo!'), t('Vai!')]),
   castorHit: (): string => pick([t('Acertou!'), t('Pow!'), t('Bum!'), t('Tá ON!')]),
   castorBadHit: (): string => pick([t('Esse não!'), t('Cuidado, não é castor!'), t('Ops! Errou o bicho!'), t('Só castor vale!')]),
-  birdStart: (): string => pick([t('Pula pra voar! Não deixa cair!'), t('Mantém o passarinho no ar!')]),
-  birdHitGround: (lives: number): string =>
+  helicopterStart: (): string => pick([t('Pula pra subir! Não deixa cair!'), t('Mantém o helicóptero no ar!'), t('Vai, piloto!')]),
+  helicopterHitGround: (lives: number): string =>
     lives === 2 ? pick([t('Ai! Ainda tem 2 vidas!'), t('Cuidado! 2 restantes.')]) :
     lives === 1 ? t('Última vida! Capricha nos pulos!') : t('Voa!'),
-  birdSurvived: (): string => pick([t('60 segundos! Incrível!'), t('Passarinho campeão!'), t('Mandou muito bem!')]),
+  helicopterSurvived: (): string => pick([t('60 segundos! Voo perfeito!'), t('Piloto campeão!'), t('Mandou muito bem!')]),
   dancePerfect: (): string => pick([t('Perfeito!'), t('No tempo!'), t('Mandou bem!')]),
   danceCombo: (n: number): string => `${n} ${t('combo!')}`,
   guidedNext: (game: string): string => `${t('Próximo:')} ${game}`,

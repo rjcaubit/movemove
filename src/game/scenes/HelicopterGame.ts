@@ -10,29 +10,34 @@ import { narratorLines } from '../i18n/narratorLines.ts';
 import type { GameEvent } from '../../pose/types.ts';
 
 const DURATION_MS = 60_000;
-const GRAVITY = 0.58;        // normalized/s²
-const JUMP_VY = -0.42;       // normalized/s (upward impulse)
-const MAX_FALL_VY = 0.95;
-const FLOOR_Y = 0.84;        // normalized — bird body center limit
+// Gravidade progressiva — começa suave e cresce até o teto em 8s, dando
+// margem pro jogador entrar no ritmo de pulos antes da física apertar.
+const GRAVITY_INITIAL = 0.15;  // normalized/s² (era 0.58 fixo)
+const GRAVITY_MAX = 0.55;
+const GRAVITY_RAMP_MS = 8_000;
+const JUMP_VY = -0.40;         // normalized/s (impulso pra cima)
+const MAX_FALL_VY = 0.85;
+const FLOOR_Y = 0.84;
 const CEIL_Y = 0.06;
+const START_Y = 0.10;          // começa lá em cima pra dar fôlego inicial
 const LIVES = 3;
 const HIT_INVINCIBILITY_MS = 1500;
 const FLASH_INTERVAL_MS = 120;
 
-interface BirdData {
+interface HelicopterData {
   session?: string[];
 }
 
-export class BirdGame extends Phaser.Scene {
-  private birdY = 0.45;
-  private birdVY = 0.0;
+export class HelicopterGame extends Phaser.Scene {
+  private heliY = START_Y;
+  private heliVY = 0.0;
   private lives = LIVES;
   private score = 0; // seconds survived
   private startedAt = 0;
   private lastHitAt = -Infinity;
   private done = false;
 
-  private bird!: Phaser.GameObjects.Text;
+  private heli!: Phaser.GameObjects.Text;
   private ground!: Phaser.GameObjects.Graphics;
   private livesText!: Phaser.GameObjects.Text;
   private timePill!: Pill;
@@ -43,14 +48,14 @@ export class BirdGame extends Phaser.Scene {
   private eventListener: ((e: Event) => void) | null = null;
   private flashTimer = 0;
 
-  constructor() { super('BirdGame'); }
+  constructor() { super('HelicopterGame'); }
 
-  create(data: BirdData): void {
+  create(data: HelicopterData): void {
     const { width, height } = GAME_CONFIG;
     this.cameras.main.setBackgroundColor(0x0a1a2a);
     this.session = data?.session ?? [];
-    this.birdY = 0.45;
-    this.birdVY = 0;
+    this.heliY = START_Y;
+    this.heliVY = 0;
     this.lives = LIVES;
     this.score = 0;
     this.done = false;
@@ -58,8 +63,8 @@ export class BirdGame extends Phaser.Scene {
     this.lastHitAt = -Infinity;
     this.flashTimer = 0;
 
-    addThemedFrame(this, 'bird');
-    addTitleBanner(this, width / 2, 50, strings.miniGames.birdTitle, 0x4cd964, 0xffffff);
+    addThemedFrame(this, 'helicopter');
+    addTitleBanner(this, width / 2, 50, strings.miniGames.helicopterTitle, 0x4cd964, 0xffffff);
 
     this.timePill = new Pill(this, width - 130, 50, '60s', {
       width: 180, fill: 0xffd60a, stroke: 0xffffff,
@@ -74,9 +79,9 @@ export class BirdGame extends Phaser.Scene {
     this.ground = this.add.graphics().setDepth(12);
     this.drawGround();
 
-    // Bird
-    this.bird = this.add.text(width * 0.35, this.birdY * height, '🐦', {
-      fontSize: '52px',
+    // Helicopter
+    this.heli = this.add.text(width * 0.35, this.heliY * height, '🚁', {
+      fontSize: '56px',
     }).setOrigin(0.5).setDepth(20);
 
     const refs = getRefs(this);
@@ -87,7 +92,7 @@ export class BirdGame extends Phaser.Scene {
     ];
 
     this.narrator = new Narrator(null, true);
-    this.narrator.speak(narratorLines.birdStart(), 2);
+    this.narrator.speak(narratorLines.helicopterStart(), 2);
 
     this.eventListener = (e: Event) => {
       const ev = (e as CustomEvent<GameEvent>).detail;
@@ -95,7 +100,7 @@ export class BirdGame extends Phaser.Scene {
     };
     refs.eventDetector.addEventListener('event', this.eventListener);
 
-    // SPACE as keyboard fallback
+    // SPACE como fallback de teclado
     this.input.keyboard?.on('keydown-SPACE', () => this.onJump());
 
     addBackButton(this);
@@ -103,14 +108,19 @@ export class BirdGame extends Phaser.Scene {
 
   private onJump(): void {
     if (this.done) return;
-    this.birdVY = JUMP_VY;
-    // Wing flap visual
+    this.heliVY = JUMP_VY;
+    // Pulso do rotor — squash visual no eixo Y
     this.tweens.add({
-      targets: this.bird,
-      scaleY: 0.7,
+      targets: this.heli,
+      scaleY: 0.8,
       duration: 80,
       yoyo: true,
     });
+  }
+
+  private currentGravity(elapsed: number): number {
+    const ramp = Math.min(1, elapsed / GRAVITY_RAMP_MS);
+    return GRAVITY_INITIAL + (GRAVITY_MAX - GRAVITY_INITIAL) * ramp;
   }
 
   update(_time: number, delta: number): void {
@@ -125,31 +135,32 @@ export class BirdGame extends Phaser.Scene {
 
     if (elapsed >= DURATION_MS) { this.finish(true); return; }
 
-    // Physics
-    this.birdVY = Math.min(MAX_FALL_VY, this.birdVY + GRAVITY * dt);
-    this.birdY += this.birdVY * dt;
+    // Física com gravidade progressiva
+    const g = this.currentGravity(elapsed);
+    this.heliVY = Math.min(MAX_FALL_VY, this.heliVY + g * dt);
+    this.heliY += this.heliVY * dt;
 
-    // Ceiling
-    if (this.birdY < CEIL_Y) { this.birdY = CEIL_Y; this.birdVY = 0; }
+    // Teto
+    if (this.heliY < CEIL_Y) { this.heliY = CEIL_Y; this.heliVY = 0; }
 
-    // Bird tilt: nose up when rising, nose down when falling
-    this.bird.setRotation(Phaser.Math.Clamp(this.birdVY * 0.9, -0.45, 1.1));
-    this.bird.setY(this.birdY * GAME_CONFIG.height);
+    // Inclina pra frente quando sobe, pra trás quando cai (helicóptero pousando)
+    this.heli.setRotation(Phaser.Math.Clamp(this.heliVY * 0.6, -0.30, 0.85));
+    this.heli.setY(this.heliY * GAME_CONFIG.height);
 
-    // Flash animation during invincibility
+    // Piscada de invencibilidade
     const inInvincibility = now - this.lastHitAt < HIT_INVINCIBILITY_MS;
     if (inInvincibility) {
       this.flashTimer += delta;
-      this.bird.setAlpha(Math.floor(this.flashTimer / FLASH_INTERVAL_MS) % 2 === 0 ? 1 : 0.15);
+      this.heli.setAlpha(Math.floor(this.flashTimer / FLASH_INTERVAL_MS) % 2 === 0 ? 1 : 0.15);
     } else {
-      this.bird.setAlpha(1);
+      this.heli.setAlpha(1);
       this.flashTimer = 0;
     }
 
-    // Floor collision
-    if (this.birdY >= FLOOR_Y && !inInvincibility) {
-      this.birdY = FLOOR_Y - 0.01;
-      this.birdVY = JUMP_VY * 0.5; // small bounce
+    // Colisão com chão
+    if (this.heliY >= FLOOR_Y && !inInvincibility) {
+      this.heliY = FLOOR_Y - 0.01;
+      this.heliVY = JUMP_VY * 0.5; // bouncezinho
       this.lastHitAt = now;
       this.lives -= 1;
       this.livesText.setText(this.livesStr());
@@ -158,7 +169,7 @@ export class BirdGame extends Phaser.Scene {
         this.finish(false);
       } else {
         this.cameras.main.shake(200, 0.012);
-        this.narrator.speak(narratorLines.birdHitGround(this.lives), 1);
+        this.narrator.speak(narratorLines.helicopterHitGround(this.lives), 1);
       }
     }
   }
@@ -171,10 +182,10 @@ export class BirdGame extends Phaser.Scene {
     const { width, height } = GAME_CONFIG;
     const gy = FLOOR_Y * height;
     this.ground.clear();
-    // Dirt
+    // Asfalto/terra
     this.ground.fillStyle(0x5c3317, 1);
     this.ground.fillRect(0, gy, width, height - gy);
-    // Grass strip
+    // Faixa de grama
     this.ground.fillStyle(0x3a7d1e, 1);
     this.ground.fillRect(0, gy, width, 14);
   }
@@ -192,14 +203,14 @@ export class BirdGame extends Phaser.Scene {
     const elapsed = performance.now() - this.startedAt;
     this.score = Math.round(Math.min(DURATION_MS, elapsed) / 1000);
 
-    if (survived) this.narrator.speak(narratorLines.birdSurvived(), 2);
+    if (survived) this.narrator.speak(narratorLines.helicopterSurvived(), 2);
 
     const refs = getRefs(this);
-    void refs.missions.tick({ birdSeconds: this.score });
+    void refs.missions.tick({ helicopterSeconds: this.score });
     this.scene.start('MiniGameResult', {
-      gameKey: 'BirdGame',
+      gameKey: 'HelicopterGame',
       score: this.score,
-      scoreLabel: strings.miniGames.birdSeconds,
+      scoreLabel: strings.miniGames.helicopterSeconds,
       session: this.session,
     });
   }

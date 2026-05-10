@@ -17,7 +17,7 @@ import { TrunkTwist } from './scenes/TrunkTwist.ts';
 import { BellRinger } from './scenes/BellRinger.ts';
 import { CastorGame } from './scenes/CastorGame.ts';
 import { CastorModePicker } from './scenes/CastorModePicker.ts';
-import { BirdGame } from './scenes/BirdGame.ts';
+import { HelicopterGame } from './scenes/HelicopterGame.ts';
 import { ChickenGame } from './scenes/ChickenGame.ts';
 import { DanceDance } from './scenes/DanceDance.ts';
 import { BodyCheck } from './scenes/BodyCheck.ts';
@@ -134,7 +134,7 @@ export function startApp(): Phaser.Game {
       width: GAME_CONFIG.width,
       height: GAME_CONFIG.height,
     },
-    scene: [Boot, Welcome, Loading, Tutorial, Calibration, Play, GameOver, Demo, Settings, Summary, WaterBreak, MiniGamesHub, BodyCheck, CatchBicho, TrunkTwist, BellRinger, ChickenGame, DanceDance, CastorGame, CastorModePicker, BirdGame, MiniGameResult, GuidedSession, GuidedSessionPicker, Rec],
+    scene: [Boot, Welcome, Loading, Tutorial, Calibration, Play, GameOver, Demo, Settings, Summary, WaterBreak, MiniGamesHub, BodyCheck, CatchBicho, TrunkTwist, BellRinger, ChickenGame, DanceDance, CastorGame, CastorModePicker, HelicopterGame, MiniGameResult, GuidedSession, GuidedSessionPicker, Rec],
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } },
     render: { pixelArt: true, antialias: false },
   });
