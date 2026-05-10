@@ -7,6 +7,15 @@ import { addBackButton } from '../ui/backButton.ts';
 import { Pill, addTitleBanner, addThemedFrame } from '../ui/hudStyle.ts';
 import { Narrator } from '../systems/narrator.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
+import { Fruit } from '../entities/Fruit.ts';
+import {
+  NINJA_BOMB_GRACE_MS,
+  NINJA_BOMB_SPAWN_CHANCE_INITIAL,
+  NINJA_BOMB_SPAWN_CHANCE_MAX,
+  NINJA_SPAWN_INTERVAL_MS_INITIAL,
+  NINJA_SPAWN_INTERVAL_MS_MIN,
+  NINJA_SPAWN_INTERVAL_STEP_MS,
+} from '../../tuning.ts';
 
 const LIVES = 3;
 
@@ -29,6 +38,11 @@ export class NinjaFruit extends Phaser.Scene {
   private session: string[] = [];
   private frameUnsub: (() => void) | null = null;
 
+  private fruits: Fruit[] = [];
+  private nextSpawnAt = 0;
+  private spawnIntervalMs = NINJA_SPAWN_INTERVAL_MS_INITIAL;
+  private lastFrameTime = 0;
+
   constructor() { super('NinjaFruit'); }
 
   create(data: NinjaFruitData): void {
@@ -40,6 +54,10 @@ export class NinjaFruit extends Phaser.Scene {
     this.bestCombo = 0;
     this.startedAt = performance.now();
     this.done = false;
+    this.fruits = [];
+    this.nextSpawnAt = performance.now() + 800;
+    this.spawnIntervalMs = NINJA_SPAWN_INTERVAL_MS_INITIAL;
+    this.lastFrameTime = performance.now();
 
     addThemedFrame(this, 'ninja');
     addTitleBanner(this, width / 2, 50, strings.miniGames.ninjaTitle, 0xff453a, 0xffffff);
@@ -68,10 +86,55 @@ export class NinjaFruit extends Phaser.Scene {
 
   update(_time: number, _delta: number): void {
     if (this.done) return;
-    const elapsed = performance.now() - this.startedAt;
-    if (elapsed > 0 && this.lives <= 0) this.finish();
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - this.lastFrameTime) / 1000);
+    this.lastFrameTime = now;
+    const elapsed = now - this.startedAt;
+
+    // Spawn
+    if (now >= this.nextSpawnAt) {
+      const bombChanceRamp = Math.min(1, elapsed / 30_000);
+      const bombChance = elapsed < NINJA_BOMB_GRACE_MS
+        ? 0
+        : NINJA_BOMB_SPAWN_CHANCE_INITIAL +
+          (NINJA_BOMB_SPAWN_CHANCE_MAX - NINJA_BOMB_SPAWN_CHANCE_INITIAL) * bombChanceRamp;
+      const kind: 'fruit' | 'bomb' = Math.random() < bombChance ? 'bomb' : 'fruit';
+      const normX = 0.15 + Math.random() * 0.7;
+      this.fruits.push(new Fruit(this, kind, normX));
+      this.nextSpawnAt = now + this.spawnIntervalMs;
+    }
+
+    // Física
+    for (const f of this.fruits) f.update(dt);
+
+    // Cleanup + penalidade por fruta perdida
+    for (const f of this.fruits) {
+      if (f.alive && f.isOffscreen()) {
+        if (f.kind === 'fruit' && !f.wasAccounted()) {
+          f.markAccounted();
+          this.onFruitMissed();
+        }
+        f.destroy();
+      }
+    }
+    this.fruits = this.fruits.filter((f) => f.alive);
+
+    // HUD sync
     this.livesText.setText(this.livesStr());
     this.scorePill.setText(String(this.score));
+  }
+
+  private onFruitMissed(): void {
+    this.lives -= 1;
+    this.spawnIntervalMs = Math.min(
+      NINJA_SPAWN_INTERVAL_MS_INITIAL,
+      Math.max(NINJA_SPAWN_INTERVAL_MS_MIN, this.spawnIntervalMs + NINJA_SPAWN_INTERVAL_STEP_MS),
+    );
+    if (this.lives <= 0) {
+      this.finish();
+    } else if (this.lives === 1) {
+      this.narrator.speak(narratorLines.ninjaLastLife(), 2);
+    }
   }
 
   private livesStr(): string {
@@ -98,5 +161,7 @@ export class NinjaFruit extends Phaser.Scene {
   shutdown(): void {
     if (this.frameUnsub) { this.frameUnsub(); this.frameUnsub = null; }
     if (this.backdrop) { this.backdrop.destroy(); this.backdrop = null; }
+    for (const f of this.fruits) f.destroy();
+    this.fruits = [];
   }
 }
