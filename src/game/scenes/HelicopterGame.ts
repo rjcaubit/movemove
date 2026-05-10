@@ -9,6 +9,7 @@ import { Narrator } from '../systems/narrator.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
 import { KP, type GameEvent, type PoseFrame } from '../../pose/types.ts';
 import { POSE_CONFIG } from '../../pose/config.ts';
+import { JumpDebugOverlay } from '../ui/jumpDebugOverlay.ts';
 
 const DURATION_MS = 60_000;
 // Gravidade progressiva — começa BEM suave e cresce devagar até o teto em 12s.
@@ -60,6 +61,8 @@ export class HelicopterGame extends Phaser.Scene {
   /** Overlay de debug ao lado do J — mostra shoulderY × threshold ao vivo. */
   private debugReadout!: Phaser.GameObjects.Text;
   private unsubFrame: (() => void) | null = null;
+  /** Overlay com as 7 estratégias do JumpTester — pra comparar contra o J real. */
+  private jumpDebug: JumpDebugOverlay | null = null;
 
   private backdrop: CameraBackdrop | null = null;
   private narrator!: Narrator;
@@ -142,7 +145,13 @@ export class HelicopterGame extends Phaser.Scene {
     refs.eventDetector.addEventListener('event', this.eventListener);
 
     // Subscreve no stream de frames pra mostrar shoulderY × threshold ao vivo
-    this.unsubFrame = refs.onSmoothedFrame((frame: PoseFrame) => this.updateDebugReadout(frame));
+    // Overlay de diagnóstico (7 estratégias). Colado no canto direito, abaixo do timer.
+    this.jumpDebug = new JumpDebugOverlay(this, width - 40, 90);
+
+    this.unsubFrame = refs.onSmoothedFrame((frame: PoseFrame) => {
+      this.updateDebugReadout(frame);
+      this.jumpDebug?.ingestFrame(frame);
+    });
 
     // SPACE como fallback de teclado
     this.input.keyboard?.on('keydown-SPACE', () => this.onJump());
@@ -333,6 +342,7 @@ export class HelicopterGame extends Phaser.Scene {
 
   shutdown(): void {
     if (this.unsubFrame) { this.unsubFrame(); this.unsubFrame = null; }
+    if (this.jumpDebug) { this.jumpDebug.destroy(); this.jumpDebug = null; }
     if (this.eventListener) {
       try {
         const refs = getRefs(this);
