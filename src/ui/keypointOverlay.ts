@@ -14,6 +14,11 @@ export interface HandGlow {
   alpha?: number;
 }
 
+export interface DrawOpts {
+  /** 'all' = 33 bolinhas (default), 'wrists' = só pulsos, 'none' = só esqueleto */
+  dots?: 'all' | 'wrists' | 'none';
+}
+
 export class KeypointOverlay {
   constructor(private readonly canvas: HTMLCanvasElement) {}
 
@@ -28,11 +33,12 @@ export class KeypointOverlay {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
-  draw(keypoints: Keypoint[], confidence: number, glows?: HandGlow[]): void {
+  draw(keypoints: Keypoint[], confidence: number, glows?: HandGlow[], opts?: DrawOpts): void {
     const ctx = this.canvas.getContext('2d');
     if (!ctx) return;
     const W = this.canvas.width;
     const H = this.canvas.height;
+    const dotMode = opts?.dots ?? 'all';
 
     const skeletonAlpha = glows && glows.length > 0 ? 0.15 : 1;
 
@@ -50,13 +56,17 @@ export class KeypointOverlay {
     }
     ctx.stroke();
 
-    for (let i = 0; i < keypoints.length; i++) {
-      const k = keypoints[i];
-      const v = k.visibility ?? 1;
-      ctx.fillStyle = v > 0.6 ? 'rgba(76,217,100,1)' : 'rgba(255,69,58,0.9)';
-      ctx.beginPath();
-      ctx.arc(k.x * W, k.y * H, 4, 0, Math.PI * 2);
-      ctx.fill();
+    if (dotMode !== 'none') {
+      const indices = dotMode === 'wrists' ? [15, 16] : keypoints.map((_, i) => i);
+      for (const i of indices) {
+        const k = keypoints[i];
+        if (!k) continue;
+        const v = k.visibility ?? 1;
+        ctx.fillStyle = v > 0.6 ? 'rgba(76,217,100,1)' : 'rgba(255,69,58,0.9)';
+        ctx.beginPath();
+        ctx.arc(k.x * W, k.y * H, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     ctx.restore();
 

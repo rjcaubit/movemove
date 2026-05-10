@@ -357,7 +357,7 @@ export class CanoeGame extends Phaser.Scene {
         const h = this.pipVideo.videoHeight || 240;
         if (this.pipCanvas.width !== w)  this.pipCanvas.width  = w;
         if (this.pipCanvas.height !== h) this.pipCanvas.height = h;
-        this.pipOverlay.draw(frame.keypoints, frame.confidence);
+        this.pipOverlay.draw(frame.keypoints, frame.confidence, undefined, { dots: 'wrists' });
       }
     });
   }
