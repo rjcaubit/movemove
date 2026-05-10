@@ -217,6 +217,32 @@ Convenção: jogos chamam `MiniGameResult` ao terminar; este pode encadear o pr�
 
 ---
 
+## 13. Ninja Fruit (`NinjaFruit`)
+
+**Arquivo:** `src/game/scenes/NinjaFruit.ts` — Entidade: `src/game/entities/Fruit.ts` (`FruitKind = 'fruit' | 'bomb'`)
+
+**Gesto:** pulso da mão dominante (auto-detectada na intro de 3s) com velocidade ≥ `NINJA_VELOCITY_THRESHOLD` (1.2 H_corpo/s, ajustável em `tuning.ts`) cruzando bbox da fruta. Mão errada não corta.
+
+**Mecânica:**
+- Intro de 3s: "Acene a mão que vai cortar!" — mede deslocamento total de cada pulso e fixa a dominante. Hand glow só nesse pulso.
+- Frutas surgem em arco balístico vindo de baixo (gravidade simulada manual em coords normalizadas), com x random.
+- **Espelha padrão `good/bad` do Castor:** `FruitKind = 'fruit' | 'bomb'`, `NINJA_BOMB_GRACE_MS = 5000` (só fruta nos primeiros 5s), chance de bomba cresce de 5% até 30% ao longo de 30s.
+- Slice de fruta = +1 × multiplier do combo + split visual em 2 metades.
+- Slice de bomba = -1 vida + screenShake + flash + narrador. Combo reseta.
+- Fruta perdida (sai pela borda) = -1 vida. Bomba que sai sem cortar = sem penalidade.
+- Combo cresce por slices consecutivos de fruta; HUD aparece quando combo ≥ 2; reseta em miss/bomba. `bestCombo` no `MiniGameResult.extra`.
+- Rastro visual cosmético (`SliceTrail`, `src/game/ui/sliceTrail.ts`) — polyline com fade nos últimos 12 pontos. NÃO entra na detecção.
+
+**Velocidade do pulso:** `WristVelocityTracker` (`src/game/systems/wristVelocity.ts`) — histórico de 8 amostras, descarta gaps > 100ms, expõe `speedNorm()` em H_corpo/s.
+
+**Modo debug:** `?debug=1` força mão dominante = R, pula intro, mouse vira pulso virtual.
+
+**Vidas:** 3. **Duração:** ilimitada — termina ao zerar vidas.
+
+**Pontuação:** frutas cortadas × multiplier de combo. `missions.tick({ ninjaSlices })`.
+
+---
+
 ## Infra compartilhada
 
 | Módulo | Papel |

@@ -2,6 +2,18 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Todas as datas são UTC.
 
+## 2026-05-10 — #15 — feat: Ninja Fruit — mini-jogo de cortar frutas com mão dominante
+
+### Added
+- Novo mini-jogo `NinjaFruit` na categoria "Mira" do hub: corta frutas em arco balístico com a mão dominante (auto-detectada na intro de 3s), evita bombas.
+- Modo arcade sem timer fixo: 3 vidas, combo crescente com multiplier de pontos, partida termina ao zerar vidas.
+- `WristVelocityTracker` (`src/game/systems/wristVelocity.ts`) — primeiro tracker de velocity de pulso do projeto; histórico de 8 amostras com gap filter.
+- `SliceTrail` (`src/game/ui/sliceTrail.ts`) — rastro polyline cosmético com fade, depth 40, puramente visual.
+- Entidade `Fruit` (`src/game/entities/Fruit.ts`) com `FruitKind = 'fruit' | 'bomb'`; bomba pulsa via tween e explode com `💥`.
+- Espelha padrão `good/bad` do `CastorGame`: `NINJA_BOMB_GRACE_MS` (5s sem bomba), chance crescente até 30% em 30s.
+- Tema visual `'ninja'` em `hudStyle.ts` (vermelho/preto). `?debug=1` pula intro + mouse como pulso virtual.
+- Spec: `docs/sdd/ISSUE_15/02-spec.md`
+
 ## 2026-04-27 — #4 — feat: Fase 2 — camada de exercício saudável + mini-jogos lúdicos
 
 ### Added

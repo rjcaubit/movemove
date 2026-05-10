@@ -9,6 +9,7 @@ import { Narrator } from '../systems/narrator.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
 import { Fruit } from '../entities/Fruit.ts';
 import { WristVelocityTracker } from '../systems/wristVelocity.ts';
+import { SliceTrail } from '../ui/sliceTrail.ts';
 import { handPosition } from '../../pose/spatialQueries.ts';
 import { KeyboardDebug } from '../../debug/keyboard.ts';
 import type { PoseFrame } from '../../pose/types.ts';
@@ -62,6 +63,8 @@ export class NinjaFruit extends Phaser.Scene {
   private prevL: { x: number; y: number } | null = null;
   private prevR: { x: number; y: number } | null = null;
   private lastPoseFrame: PoseFrame | null = null;
+
+  private trail: SliceTrail | null = null;
 
   // Debug mouse
   private debugMouse = false;
@@ -126,6 +129,7 @@ export class NinjaFruit extends Phaser.Scene {
       { idx: 16, color: '#ff453a', alpha: 0.55 },
     ];
 
+    this.trail = new SliceTrail(this);
     this.frameUnsub = refs.onSmoothedFrame((f: PoseFrame) => this.onFrame(f));
 
     this.narrator = new Narrator(null, true);
@@ -153,6 +157,13 @@ export class NinjaFruit extends Phaser.Scene {
   private onFrame(f: PoseFrame): void {
     this.lastPoseFrame = f;
     this.tracker.push(f);
+
+    if (this.dominantHand !== null) {
+      const wrist = handPosition(f, this.dominantHand);
+      if (wrist) {
+        this.trail?.push(wrist.x * GAME_CONFIG.width, wrist.y * GAME_CONFIG.height);
+      }
+    }
 
     const elapsed = performance.now() - this.startedAt;
 
@@ -270,7 +281,8 @@ export class NinjaFruit extends Phaser.Scene {
     }
     this.fruits = this.fruits.filter((f) => f.alive);
 
-    // HUD
+    // Trail + HUD
+    this.trail?.render();
     this.livesText.setText(this.livesStr());
     this.scorePill.setText(String(this.score));
   }
@@ -356,6 +368,7 @@ export class NinjaFruit extends Phaser.Scene {
   shutdown(): void {
     if (this.frameUnsub) { this.frameUnsub(); this.frameUnsub = null; }
     if (this.backdrop) { this.backdrop.destroy(); this.backdrop = null; }
+    if (this.trail) { this.trail.destroy(); this.trail = null; }
     for (const f of this.fruits) f.destroy();
     this.fruits = [];
   }

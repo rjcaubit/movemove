@@ -114,6 +114,7 @@ Todas registradas no `orchestrator.ts` (`new Phaser.Game({ scene: [...] })`).
 | `ChickenGame` | Mini-game | Galinha — flap+scratch (70s) |
 | `DanceDance` | Mini-game | DDR com pictogramas (~75s) |
 | `HelicopterGame` | Mini-game | Helicóptero — pula pra subir (60s, gravidade progressiva) |
+| `NinjaFruit` | Mini-game | Corta frutas, evita bombas — mão dominante auto-detectada, 3 vidas, combo |
 | `CastorGame` | Mini-game | Whack-a-mole 1P/2P (60s) |
 | `CastorModePicker` | Mini-game | Picker 1P/2P → BodyCheck → Castor |
 | `GuidedSession` | Sessão | Ciclos rest/exercise (5/7/10/15min) |
@@ -157,6 +158,7 @@ Todas registradas no `orchestrator.ts` (`new Phaser.Game({ scene: [...] })`).
 | #4 | feat | Fase 2 — exercício saudável + mini-jogos | Mergeada ✅ |
 | #5 | feat | Fase 3 — conteúdo, progressão, 2P | Aberta (parcialmente coberta por #14) |
 | #14 | improve | Catálogo de jogos lúdicos + assets Kenney + 2P + Rec | **WIP** |
+| #15 | feat | Ninja Fruit — mini-jogo de cortar frutas com mão dominante | **WIP** |
 
 ## Achados acumulados
 
