@@ -17,10 +17,12 @@ const GRAVITY_INITIAL = 0.08;  // normalized/s² (queda inicial bem leve)
 const GRAVITY_MAX = 0.32;       // queda no fim ainda controlável
 const GRAVITY_RAMP_MS = 12_000;
 const MAX_FALL_VY = 0.55;       // velocidade terminal de queda (era 0.85)
-// Pulo
-const JUMP_VY = -0.55;          // impulso base pra cima
+// Pulo — impulso forte e GARANTIDO pra cima. Mesmo sem stacking, um único
+// pulo deve dar um empurrão claramente visível pra confirmar que detectou.
+const JUMP_VY = -0.95;          // impulso base pra cima (forte)
+const JUMP_MIN_VY = -0.75;      // piso: depois do pulo, vy nunca fica menos negativo que isso
 const JUMP_STACK_FACTOR = 0.8;  // pulo enquanto já sobe adiciona 80% do impulso base
-const JUMP_VY_CAP = -1.40;      // teto de velocidade ascendente (mais alto = sobe mais quando pumping)
+const JUMP_VY_CAP = -1.80;      // teto de velocidade ascendente (mais alto = sobe mais quando pumping)
 // Frequência de pulos — quanto mais rápido o jogador pula, maior o multiplicador
 // no impulso. Janela observa pulos nos últimos JUMP_RATE_WINDOW_MS.
 const JUMP_RATE_WINDOW_MS = 1500;
@@ -177,6 +179,9 @@ export class HelicopterGame extends Phaser.Scene {
       // Estava caindo / parado — impulso completo modulado pelo rate.
       this.heliVY = Math.max(JUMP_VY_CAP, impulse);
     }
+    // Garante um empurrão mínimo claramente visível, mesmo se algum cálculo
+    // diluir o impulso. Se já estava subindo muito forte, mantém.
+    if (this.heliVY > JUMP_MIN_VY) this.heliVY = JUMP_MIN_VY;
     this.lastJumpAt = now;
     this.jumpFlashMs = 300;
     // Pulso do rotor — squash visual no eixo Y
