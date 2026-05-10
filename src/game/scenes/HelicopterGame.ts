@@ -124,6 +124,7 @@ export class HelicopterGame extends Phaser.Scene {
       stroke: '#000', strokeThickness: 3,
     }).setOrigin(0, 0.5).setDepth(16);
 
+
     const refs = getRefs(this);
     this.backdrop = new CameraBackdrop(this, refs.video, refs.onSmoothedFrame, 0.6);
     this.backdrop.handGlows = [

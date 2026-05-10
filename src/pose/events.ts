@@ -14,6 +14,8 @@ export class EventDetector extends EventTarget {
   // jump — usa ombro (mais robusto que quadril: ombro raramente sai do frame)
   private lastJumpAt = 0;
   private prevShoulderY: number | null = null;
+  /** Janela de samples de ombro para condição de velocidade (G). */
+  private shoulderHistory: Array<{ t: number; y: number }> = [];
   // duck
   private duckSince: number | null = null;
   // lane
@@ -35,6 +37,7 @@ export class EventDetector extends EventTarget {
     this.baseline = null;
     this.lastJumpAt = 0;
     this.prevShoulderY = null;
+    this.shoulderHistory = [];
     this.duckSince = null;
     this.currentLane = 0;
     this.lastLaneChangeAt = 0;
@@ -76,14 +79,38 @@ export class EventDetector extends EventTarget {
     // Usa ombro como referência: quadril sai do frame quando o jogador chega perto
     // da câmera, mas o ombro fica visível mesmo em enquadramento meio-corpo.
     const yShoulder = this.shoulderY(kp);
+
+    // Atualiza janela de velocidade (descarta amostras fora da janela)
+    this.shoulderHistory.push({ t, y: yShoulder });
+    const cutoff = t - POSE_CONFIG.shoulderJumpVelocityWindowMs - 50;
+    while (this.shoulderHistory.length > 0 && this.shoulderHistory[0].t < cutoff) {
+      this.shoulderHistory.shift();
+    }
+
+    // Condição B — threshold absoluto + ascending
     const threshold =
       this.baseline.yOmbrosBase - POSE_CONFIG.shoulderJumpThresholdFracHCorpo * this.baseline.hCorpo;
     const ascending = this.prevShoulderY !== null && yShoulder < this.prevShoulderY;
-    if (
-      yShoulder < threshold &&
-      ascending &&
-      t - this.lastJumpAt > POSE_CONFIG.jumpCooldownMs
-    ) {
+    const condB = yShoulder < threshold && ascending;
+
+    // Condição G — velocidade pra cima (independente do baseline; resiste a drift)
+    let condG = false;
+    if (this.shoulderHistory.length >= 2) {
+      // Pega a amostra mais próxima do início da janela (~220ms atrás)
+      const target = t - POSE_CONFIG.shoulderJumpVelocityWindowMs;
+      let oldest = this.shoulderHistory[0];
+      for (const s of this.shoulderHistory) {
+        if (s.t <= target) oldest = s;
+        else break;
+      }
+      const dt = (t - oldest.t) / 1000;
+      if (dt > 0.05) {
+        const v = (oldest.y - yShoulder) / dt; // positivo = subindo
+        condG = v > POSE_CONFIG.shoulderJumpVelocityMin;
+      }
+    }
+
+    if ((condB || condG) && t - this.lastJumpAt > POSE_CONFIG.jumpCooldownMs) {
       this.lastJumpAt = t;
       this.emit({ type: 'jump', source: 'pose', t });
     }
