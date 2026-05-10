@@ -7,7 +7,8 @@ import { addBackButton } from '../ui/backButton.ts';
 import { Pill, addTitleBanner, addThemedFrame } from '../ui/hudStyle.ts';
 import { Narrator } from '../systems/narrator.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
-import type { GameEvent } from '../../pose/types.ts';
+import { KP, type GameEvent, type PoseFrame } from '../../pose/types.ts';
+import { POSE_CONFIG } from '../../pose/config.ts';
 
 const DURATION_MS = 60_000;
 // Gravidade progressiva — começa BEM suave e cresce devagar até o teto em 12s.
@@ -56,6 +57,9 @@ export class HelicopterGame extends Phaser.Scene {
   private indicJ!: Phaser.GameObjects.Graphics;
   private indicJLabel!: Phaser.GameObjects.Text;
   private jumpFlashMs = 0;
+  /** Overlay de debug ao lado do J — mostra shoulderY × threshold ao vivo. */
+  private debugReadout!: Phaser.GameObjects.Text;
+  private unsubFrame: (() => void) | null = null;
 
   private backdrop: CameraBackdrop | null = null;
   private narrator!: Narrator;
@@ -114,6 +118,12 @@ export class HelicopterGame extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(16);
     this.drawJumpIndicator();
 
+    // Readout ao vivo do detector de pulo — fica do lado do J
+    this.debugReadout = this.add.text(width / 2 + 60, indicY, '', {
+      fontFamily: 'VT323, ui-monospace', fontSize: '16px', color: '#ffffff',
+      stroke: '#000', strokeThickness: 3,
+    }).setOrigin(0, 0.5).setDepth(16);
+
     const refs = getRefs(this);
     this.backdrop = new CameraBackdrop(this, refs.video, refs.onSmoothedFrame, 0.6);
     this.backdrop.handGlows = [
@@ -129,6 +139,9 @@ export class HelicopterGame extends Phaser.Scene {
       if (ev.type === 'jump') this.onJump();
     };
     refs.eventDetector.addEventListener('event', this.eventListener);
+
+    // Subscreve no stream de frames pra mostrar shoulderY × threshold ao vivo
+    this.unsubFrame = refs.onSmoothedFrame((frame: PoseFrame) => this.updateDebugReadout(frame));
 
     // SPACE como fallback de teclado
     this.input.keyboard?.on('keydown-SPACE', () => this.onJump());
@@ -238,6 +251,25 @@ export class HelicopterGame extends Phaser.Scene {
     return '❤️'.repeat(this.lives) + '🖤'.repeat(LIVES - this.lives);
   }
 
+  private updateDebugReadout(frame: PoseFrame): void {
+    const refs = getRefs(this);
+    const baseline = refs.eventDetector.getBaseline();
+    if (!baseline) {
+      this.debugReadout.setText('no baseline');
+      this.debugReadout.setColor('#ff6b6b');
+      return;
+    }
+    const kp = frame.keypoints;
+    const yShoulder = (kp[KP.LEFT_SHOULDER].y + kp[KP.RIGHT_SHOULDER].y) / 2;
+    const threshold = baseline.yOmbrosBase - POSE_CONFIG.jumpThresholdFracHCorpo * baseline.hCorpo;
+    const delta = yShoulder - threshold; // negativo = acima do threshold (pulou)
+    const wouldDetect = yShoulder < threshold;
+    this.debugReadout.setText(
+      `shY ${yShoulder.toFixed(3)}\nthr ${threshold.toFixed(3)}\nΔ ${delta.toFixed(3)} conf ${frame.confidence.toFixed(2)}`
+    );
+    this.debugReadout.setColor(wouldDetect ? '#4cd964' : '#ffffff');
+  }
+
   private drawJumpIndicator(): void {
     const lit = this.jumpFlashMs > 0;
     const x = GAME_CONFIG.width / 2;
@@ -299,6 +331,7 @@ export class HelicopterGame extends Phaser.Scene {
   }
 
   shutdown(): void {
+    if (this.unsubFrame) { this.unsubFrame(); this.unsubFrame = null; }
     if (this.eventListener) {
       try {
         const refs = getRefs(this);
