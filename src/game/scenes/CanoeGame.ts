@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 import { getRefs } from '../orchestrator.ts';
-import { RowingDetector } from '../systems/rowingDetector.ts';
+import { RowingDetector, type PunchSide } from '../systems/rowingDetector.ts';
 import { KeypointOverlay } from '../../ui/keypointOverlay.ts';
 import { Narrator } from '../systems/narrator.ts';
 import { narratorLines } from '../i18n/narratorLines.ts';
@@ -346,7 +346,7 @@ export class CanoeGame extends Phaser.Scene {
     this.detector = new RowingDetector(
       ROWING_STROKE_THRESHOLD,
       ROWING_REFRACTORY_MS,
-      (side) => this.onStroke(side),
+      (side) => this.onPunch(side),
     );
 
     this.unsub = refs.onSmoothedFrame((frame) => {
@@ -362,12 +362,27 @@ export class CanoeGame extends Phaser.Scene {
     });
   }
 
-  private onStroke(side: 'L' | 'R'): void {
+  // Mecânica de remada (física real):
+  //   Soco com mão DIREITA → empurra água do lado direito → barco vira pra ESQUERDA
+  //   Soco com mão ESQUERDA → barco vira pra DIREITA
+  //   Soco com AMBAS → impulso forte pra frente + barco volta pro centro
+  private onPunch(side: PunchSide): void {
     this.lastStrokeAt = performance.now();
+
+    if (side === 'BOTH') {
+      this.strokeFlash.L = 300;
+      this.strokeFlash.R = 300;
+      // Puxa rapidamente pro centro
+      this.canoeTargetX = Phaser.Math.Linear(this.canoeTargetX, 0.5, 0.6);
+      // Impulso forte pra frente (2x stroke normal)
+      this.speed = Math.min(this.speed + CANOE_SPEED_PER_STROKE * 2, CANOE_MAX_SPEED);
+      return;
+    }
+
     this.strokeFlash[side] = 300;
 
-    const dir = side === 'L' ? -1 : 1;
-    // Rio ocupa [0.225, 0.775] da largura; clamp considera meia-largura da canoa (~0.04 norm)
+    // INVERTIDO: L → +1 (direita), R → -1 (esquerda)
+    const dir = side === 'L' ? 1 : -1;
     this.canoeTargetX = Phaser.Math.Clamp(
       this.canoeTargetX + dir * CANOE_STEER_AMOUNT,
       0.27, 0.73,
@@ -461,8 +476,9 @@ export class CanoeGame extends Phaser.Scene {
   private setupDebugKeys(): void {
     if (!KeyboardDebug.isEnabledByQuery()) return;
 
-    this.input.keyboard?.on('keydown-A', () => this.onStroke('L'));
-    this.input.keyboard?.on('keydown-D', () => this.onStroke('R'));
+    this.input.keyboard?.on('keydown-A', () => this.onPunch('L'));
+    this.input.keyboard?.on('keydown-D', () => this.onPunch('R'));
+    this.input.keyboard?.on('keydown-S', () => this.onPunch('BOTH'));
   }
 
   // ─────────────────────────────────────
@@ -492,7 +508,7 @@ export class CanoeGame extends Phaser.Scene {
     }).setDepth(51);
 
     this.add.text(panelX + 10, panelY + panelH + 6,
-      'Levanta o braço, desce rápido (~ombro→quadril) — ALTERNA L↔R',
+      'Soquinhos rápidos! Mão E → barco vai DIREITA · Mão D → ESQUERDA · Ambas → CENTRO + impulso',
       {
         fontFamily: 'VT323, ui-monospace', fontSize: '16px',
         color: '#ffd60a', stroke: '#000', strokeThickness: 3,
@@ -508,27 +524,24 @@ export class CanoeGame extends Phaser.Scene {
     const reasonLabel = (r: string | null): string => {
       if (!r) return '✓ pronto';
       switch (r) {
-        case 'cooldown':   return '⏳ cooldown';
-        case 'speed':      return '🐢 lento';
-        case 'no-descent': return '↕ subindo';
-        case 'history':    return '… aquece';
-        case 'alternance': return '↔ alterna!';
-        default:           return r;
+        case 'cooldown': return '⏳ cooldown';
+        case 'speed':    return '🐢 lento';
+        default:         return r;
       }
     };
 
     const now = performance.now();
-    const sinceStroke = d.lastStrokeAt > 0 ? Math.floor(now - d.lastStrokeAt) : -1;
-    const lastSide = d.lastStroke ?? '–';
+    const sincePunch = d.lastPunchAt > 0 ? Math.floor(now - d.lastPunchAt) : -1;
+    const lastSide = d.lastPunch ?? '–';
 
     const lines = [
-      `THRESHOLD speed≥${ROWING_STROKE_THRESHOLD.toFixed(2)}  dy≥0.015  cool≥${ROWING_REFRACTORY_MS}ms`,
+      `THRESHOLD speed≥${ROWING_STROKE_THRESHOLD.toFixed(2)}   cooldown≥${ROWING_REFRACTORY_MS}ms`,
       ``,
-      `L  speed=${fmt(d.L.speed)}  dy=${fmt(d.L.dy, 4)}  cool=${Math.round(d.L.cooldownMs).toString().padStart(4)}ms  ${reasonLabel(d.L.lastReject)}`,
-      `R  speed=${fmt(d.R.speed)}  dy=${fmt(d.R.dy, 4)}  cool=${Math.round(d.R.cooldownMs).toString().padStart(4)}ms  ${reasonLabel(d.R.lastReject)}`,
+      `L  speed=${fmt(d.L.speed)}  cool=${Math.round(d.L.cooldownMs).toString().padStart(4)}ms  ${reasonLabel(d.L.lastReject)}`,
+      `R  speed=${fmt(d.R.speed)}  cool=${Math.round(d.R.cooldownMs).toString().padStart(4)}ms  ${reasonLabel(d.R.lastReject)}`,
       ``,
-      `Última remada: ${lastSide}  (${sinceStroke >= 0 ? sinceStroke + 'ms atrás' : '—'})`,
-      `Próxima permitida: ${lastSide === 'L' ? 'R' : lastSide === 'R' ? 'L' : 'L ou R'}`,
+      `Último soco: ${lastSide}  (${sincePunch >= 0 ? sincePunch + 'ms atrás' : '—'})`,
+      `Mão E → DIREITA · Mão D → ESQUERDA · Ambas → CENTRO`,
     ];
     this.debugText.setText(lines);
   }

@@ -149,7 +149,7 @@ export const strings = {
     ninjaIntroReady: t('Pronto! Vai!'),
     ninjaCombo: t('COMBO'),
     canoeTitle: t('Canoa'),
-    canoeDesc: t('Rema alternando os braços!'),
+    canoeDesc: t('Soquinhos! Mão E vira direita, mão D vira esquerda.'),
     canoeMeters: t('Metros remados'),
     danceIntroBaseline: t('Fica em pé reto pra eu medir você…'),
     danceMoves: t('Movimentos'),

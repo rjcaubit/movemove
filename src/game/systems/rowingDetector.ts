@@ -1,120 +1,79 @@
 import { WristVelocityTracker } from './wristVelocity.ts';
-import { KP, type PoseFrame } from '../../pose/types.ts';
+import { type PoseFrame } from '../../pose/types.ts';
 
-const Y_HISTORY = 5;
-const MIN_DY = 0.015; // descida mínima em coords normalizadas para contar como stroke
+// "Soco" / pedalada: detecta velocidade alta do pulso em qualquer direção.
+// Sem filtro Y (não exige descida) e sem alternância.
+// Emite 'BOTH' quando ambos pulsos passam o threshold no mesmo push.
 
-export type RejectReason = 'cooldown' | 'speed' | 'history' | 'no-descent' | 'alternance';
+export type PunchSide = 'L' | 'R' | 'BOTH';
+export type RejectReason = 'cooldown' | 'speed';
 
 export interface SideDebug {
   speed: number;
-  dy: number;
   cooldownMs: number;
   lastReject: RejectReason | null;
-  lastRejectAt: number; // performance.now() do último reject
 }
 
 export interface DetectorDebug {
   L: SideDebug;
   R: SideDebug;
-  lastStroke: 'L' | 'R' | null;
-  lastStrokeAt: number;
+  lastPunch: PunchSide | null;
+  lastPunchAt: number;
 }
 
 export class RowingDetector {
   private tracker = new WristVelocityTracker();
-  private lastStroke: 'L' | 'R' | null = null;
-  private lastStrokeAt = 0;
   private refractoryUntil: Record<'L' | 'R', number> = { L: 0, R: 0 };
-  private yHist: Record<'L' | 'R', number[]> = { L: [], R: [] };
 
-  // Debug snapshot atualizado a cada push()
   private debug: DetectorDebug = {
-    L: { speed: 0, dy: 0, cooldownMs: 0, lastReject: null, lastRejectAt: 0 },
-    R: { speed: 0, dy: 0, cooldownMs: 0, lastReject: null, lastRejectAt: 0 },
-    lastStroke: null,
-    lastStrokeAt: 0,
+    L: { speed: 0, cooldownMs: 0, lastReject: null },
+    R: { speed: 0, cooldownMs: 0, lastReject: null },
+    lastPunch: null,
+    lastPunchAt: 0,
   };
 
   constructor(
     private readonly speedThreshold: number,
     private readonly refractoryMs: number,
-    private readonly onStroke: (side: 'L' | 'R') => void,
+    private readonly onPunch: (side: PunchSide) => void,
   ) {}
 
   push(frame: PoseFrame): void {
     this.tracker.push(frame);
     const now = performance.now();
 
-    const lw = frame.keypoints[KP.LEFT_WRIST];
-    const rw = frame.keypoints[KP.RIGHT_WRIST];
+    const speedL = this.tracker.speedNorm('L');
+    const speedR = this.tracker.speedNorm('R');
 
-    if (lw) {
-      this.yHist.L.push(lw.y);
-      if (this.yHist.L.length > Y_HISTORY) this.yHist.L.shift();
-    }
-    if (rw) {
-      this.yHist.R.push(rw.y);
-      if (this.yHist.R.length > Y_HISTORY) this.yHist.R.shift();
-    }
+    const lFiring = speedL >= this.speedThreshold && now >= this.refractoryUntil.L;
+    const rFiring = speedR >= this.speedThreshold && now >= this.refractoryUntil.R;
 
-    this.checkSide('L', now);
-    this.checkSide('R', now);
-
-    // Atualizar snapshot debug
-    this.updateDebug(now);
-  }
-
-  private updateDebug(now: number): void {
-    for (const side of ['L', 'R'] as const) {
-      const hist = this.yHist[side];
-      const dy = hist.length >= 2 ? hist[hist.length - 1] - hist[0] : 0;
-      this.debug[side].speed = this.tracker.speedNorm(side);
-      this.debug[side].dy = dy;
-      this.debug[side].cooldownMs = Math.max(0, this.refractoryUntil[side] - now);
-    }
-    this.debug.lastStroke = this.lastStroke;
-    this.debug.lastStrokeAt = this.lastStrokeAt;
-  }
-
-  private setReject(side: 'L' | 'R', reason: RejectReason, now: number): void {
-    this.debug[side].lastReject = reason;
-    this.debug[side].lastRejectAt = now;
-  }
-
-  private checkSide(side: 'L' | 'R', now: number): void {
-    if (now < this.refractoryUntil[side]) {
-      this.setReject(side, 'cooldown', now);
-      return;
+    let punched: PunchSide | null = null;
+    if (lFiring && rFiring) {
+      this.refractoryUntil.L = now + this.refractoryMs;
+      this.refractoryUntil.R = now + this.refractoryMs;
+      punched = 'BOTH';
+    } else if (lFiring) {
+      this.refractoryUntil.L = now + this.refractoryMs;
+      punched = 'L';
+    } else if (rFiring) {
+      this.refractoryUntil.R = now + this.refractoryMs;
+      punched = 'R';
     }
 
-    const speed = this.tracker.speedNorm(side);
-    if (speed < this.speedThreshold) {
-      this.setReject(side, 'speed', now);
-      return;
-    }
+    // Atualizar debug snapshot ANTES do callback (callback pode ler)
+    this.debug.L.speed = speedL;
+    this.debug.R.speed = speedR;
+    this.debug.L.cooldownMs = Math.max(0, this.refractoryUntil.L - now);
+    this.debug.R.cooldownMs = Math.max(0, this.refractoryUntil.R - now);
+    this.debug.L.lastReject = lFiring ? null : (now < this.refractoryUntil.L ? 'cooldown' : 'speed');
+    this.debug.R.lastReject = rFiring ? null : (now < this.refractoryUntil.R ? 'cooldown' : 'speed');
 
-    const hist = this.yHist[side];
-    if (hist.length < Y_HISTORY) {
-      this.setReject(side, 'history', now);
-      return;
+    if (punched) {
+      this.debug.lastPunch = punched;
+      this.debug.lastPunchAt = now;
+      this.onPunch(punched);
     }
-    const dy = hist[hist.length - 1] - hist[0];
-    if (dy < MIN_DY) {
-      this.setReject(side, 'no-descent', now);
-      return;
-    }
-
-    if (this.lastStroke === side) {
-      this.setReject(side, 'alternance', now);
-      return;
-    }
-
-    this.lastStroke = side;
-    this.lastStrokeAt = now;
-    this.refractoryUntil[side] = now + this.refractoryMs;
-    this.debug[side].lastReject = null;
-    this.onStroke(side);
   }
 
   getDebug(): DetectorDebug {
@@ -123,15 +82,12 @@ export class RowingDetector {
 
   reset(): void {
     this.tracker.reset();
-    this.lastStroke = null;
-    this.lastStrokeAt = 0;
     this.refractoryUntil = { L: 0, R: 0 };
-    this.yHist = { L: [], R: [] };
     this.debug = {
-      L: { speed: 0, dy: 0, cooldownMs: 0, lastReject: null, lastRejectAt: 0 },
-      R: { speed: 0, dy: 0, cooldownMs: 0, lastReject: null, lastRejectAt: 0 },
-      lastStroke: null,
-      lastStrokeAt: 0,
+      L: { speed: 0, cooldownMs: 0, lastReject: null },
+      R: { speed: 0, cooldownMs: 0, lastReject: null },
+      lastPunch: null,
+      lastPunchAt: 0,
     };
   }
 }
