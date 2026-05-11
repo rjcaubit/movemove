@@ -17,17 +17,16 @@ const GRAVITY_INITIAL = 0.08;  // normalized/s² (queda inicial bem leve)
 const GRAVITY_MAX = 0.32;       // queda no fim ainda controlável
 const GRAVITY_RAMP_MS = 12_000;
 const MAX_FALL_VY = 0.55;       // velocidade terminal de queda (era 0.85)
-// Pulo — impulso forte e GARANTIDO pra cima. Mesmo sem stacking, um único
-// pulo deve dar um empurrão claramente visível pra confirmar que detectou.
-const JUMP_VY = -0.95;          // impulso base pra cima (forte)
-const JUMP_MIN_VY = -0.75;      // piso: depois do pulo, vy nunca fica menos negativo que isso
-const JUMP_STACK_FACTOR = 0.8;  // pulo enquanto já sobe adiciona 80% do impulso base
-const JUMP_VY_CAP = -1.80;      // teto de velocidade ascendente (mais alto = sobe mais quando pumping)
-// Frequência de pulos — quanto mais rápido o jogador pula, maior o multiplicador
-// no impulso. Janela observa pulos nos últimos JUMP_RATE_WINDOW_MS.
-const JUMP_RATE_WINDOW_MS = 1500;
-const JUMP_RATE_STEP = 0.33;    // cada pulo prévio dentro da janela soma 33% no multiplicador
-const JUMP_RATE_MAX_BONUS = 1.0; // teto: bônus máximo de +100% (multiplicador chega a 2×)
+// Pulo — impulso base modesto. Pra subir mais alto, pular MAIS RÁPIDO
+// (cadência aumenta o multiplicador). Recompensa esforço sustentado.
+const JUMP_VY = -0.42;          // impulso base pra cima (modesto, pulo isolado quase só compensa gravidade)
+const JUMP_MIN_VY = -0.35;      // piso mínimo de empurrão visível
+const JUMP_STACK_FACTOR = 0.7;  // pulo enquanto já sobe adiciona 70% do impulso base
+const JUMP_VY_CAP = -2.20;      // teto de velocidade ascendente (deixa pumping rápido subir bastante)
+// Frequência de pulos — pular rápido VIRA a forma principal de subir.
+const JUMP_RATE_WINDOW_MS = 1800;
+const JUMP_RATE_STEP = 0.6;     // cada pulo prévio dentro da janela soma 60% no multiplicador
+const JUMP_RATE_MAX_BONUS = 2.5; // teto: bônus máximo de +250% (multiplicador chega a 3.5×)
 // Hover — após um pulo, gravidade fica reduzida por 1.8s (rotor ainda segurando)
 const HOVER_DURATION_MS = 1800;
 const HOVER_GRAVITY_FLOOR = 0.10; // logo após pulo, gravidade vira 10% da normal
