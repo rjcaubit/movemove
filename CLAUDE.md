@@ -13,7 +13,7 @@
 | Distribuição | Oracle Linux 9 |
 | Chave SSH | `./keys/ssh-key-2026-04-27.key` (gitignored) |
 | Path do app | `/home/opc/movemove` |
-| URL pública | http://137.131.157.30 (HTTP — sem domínio/HTTPS ainda) |
+| URL pública | http://move.callbit.com.br (via Cloudflare proxy) |
 | Container | `movemove-frontend` (nginx:alpine servindo `dist/`) |
 | Portas | 80, 443 (mas só 80 ativo, sem cert) |
 
@@ -40,7 +40,7 @@ ssh -i keys/ssh-key-2026-04-27.key opc@137.131.157.30 \
   'cd ~/movemove && docker compose up -d --build'
 
 # 4) Smoke test
-curl -sI http://137.131.157.30 | head -3
+curl -sI http://move.callbit.com.br | head -3
 ```
 
 ### Logs / debug em produção
