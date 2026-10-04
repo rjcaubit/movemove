@@ -232,7 +232,9 @@ function render(): void {
       h('span', null, 'MoveMove · treino em casa com a câmera'),
       h('span', null, 'Sem conta. Seus dados ficam no seu aparelho.')));
 
-  root.append(nav, h('main', null, hero, how, amplitude, catalog, challenge, extras, final), footer);
+  // `replaceChildren`, e não `append`: o index.html já traz esta mesma página em HTML estático
+  // (para o buscador), e ela precisa ser substituída, não duplicada.
+  root.replaceChildren(nav, h('main', null, hero, how, amplitude, catalog, challenge, extras, final), footer);
 }
 
 render();
