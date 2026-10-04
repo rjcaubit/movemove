@@ -7,6 +7,8 @@ export const KP = {
   RIGHT_EYE: 5,
   LEFT_SHOULDER: 11,
   RIGHT_SHOULDER: 12,
+  LEFT_ELBOW: 13,
+  RIGHT_ELBOW: 14,
   LEFT_WRIST: 15,
   RIGHT_WRIST: 16,
   LEFT_HIP: 23,
@@ -15,6 +17,8 @@ export const KP = {
   RIGHT_KNEE: 26,
   LEFT_ANKLE: 27,
   RIGHT_ANKLE: 28,
+  LEFT_HEEL: 29,
+  RIGHT_HEEL: 30,
 } as const;
 
 export interface Keypoint {

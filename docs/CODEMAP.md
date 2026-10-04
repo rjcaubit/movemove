@@ -1,9 +1,13 @@
 # CODEMAP — Movemove
 
-> Atualizado: 2026-05-10 (Issue #16 — CanoeGame adicionado; Issue #15 — NinjaFruit; Issue #14 WIP — assets Kenney, novas cenas e sistemas)
+> Atualizado: 2026-09-28 (MoveMove 2.0 — app de exercício em `src/app/`, jogos viram aba; antes: Issue #16 — CanoeGame adicionado; Issue #15 — NinjaFruit; Issue #14 WIP — assets Kenney, novas cenas e sistemas)
 > Fonte da verdade sobre estrutura, módulos e padrões do projeto.
 
 ## Status do projeto
+
+**MoveMove 2.0 (2026-09-28):** o produto virou **app de exercício com módulo de jogos**. A UI principal é TS/DOM puro em `src/app/` (sem Phaser), com abas **Treino · Desafios · Jogos · Histórico**, rotas por hash (`#/`, `#/montar`, `#/sessao`, `#/resumo`, `#/desafios`, `#/desafios/novo`, `#/desafio/<payload>`, `#/desafio-resultado`, `#/jogos`, `#/historico`). O Phaser só carrega (import dinâmico de `src/game/launch.ts`) quando a aba Jogos abre um jogo. Câmera + MediaPipe têm dono único: `src/pose/runtime.ts` (`getPoseRuntime()`), compartilhado entre app e jogos. Dados locais versionados em `localStorage` (`mm2.history`, `mm2.challenges`, `mm2.prefs`, `mm2.lastWorkout`); dados antigos (`movemove.*`, IndexedDB) ficam intactos. Design de referência: `Movemove Fit.dc.html` (claude.ai/design).
+
+Histórico anterior:
 
 **Fase atual:** 2+ (cardio + missões + narrador) com Issue #14 WIP (catálogo de jogos lúdicos, assets Kenney, 2P, Rec) e Issue #15 adicionando NinjaFruit (cortar frutas com mão dominante, evitar bombas). Hub categorizado (Cardio / Ritmo / Mira — 4 jogos). Todo mini-jogo (incl. Runner) passa por `BodyCheck` antes de calibrar. Persistência via `localStorage` + IndexedDB (`idb-keyval`).
 
@@ -38,7 +42,22 @@ movemove/
 │  ├─ movimentos.md              # catálogo de movimentos detectáveis + pictogramas
 │  └─ sdd/ISSUE_{n}/             # specs SDD
 ├─ src/
-│  ├─ main.ts                    # bootstrap + ajuste retrato/paisagem + __movemoveDebug
+│  ├─ main.ts                    # bootstrap do app (startMoveMove)
+│  ├─ app/                       # MoveMove 2.0 — UI do app (sem Phaser)
+│  │  ├─ main.ts                 # shell, abas, rotas; ?games=1 abre jogos direto
+│  │  ├─ app.css                 # tokens do design (Sora, #eef0f2, #14181d, #1f9db6…)
+│  │  ├─ router.ts / state.ts    # rotas por hash; estado em memória entre telas
+│  │  ├─ games.ts                # camada #game-layer que sobe/derruba o Phaser
+│  │  ├─ services/               # lógica agnóstica de plataforma (porta p/ React Native)
+│  │  │  ├─ catalog.ts           # 18 exercícios (9 originais + agachamento + 8 novos)
+│  │  │  ├─ generateWorkout.ts   # generateWorkout(options, seed) — regra local, trocável por IA
+│  │  │  ├─ sessionRunner.ts     # máquina de estados treino/desafio (tempo via tick(now))
+│  │  │  ├─ challenges.ts        # payload base64url, modos, marcas, wa.me
+│  │  │  ├─ history.ts / prefs.ts / storage.ts (KV adapter) / coach.ts (voz) / format.ts
+│  │  ├─ screens/                # home, builder, session (preparação+treino+descanso),
+│  │  │                          # summary, challenges, challengeCreate/Receive/Result, history, games
+│  │  └─ ui/                     # dom.ts (h/s/ícones/anel), figure.ts (boneco SVG), cameraView.ts
+│  ├─ shared/figurePoses.ts      # poses do boneco (frontal legado + perfil por keyframes), sem renderer
 │  ├─ tuning.ts                  # constantes ajustáveis (velocidade, FX, age groups)
 │  ├─ styles.css
 │  ├─ pose/                      # camada de pose (invariante entre cenas)
@@ -47,6 +66,8 @@ movemove/
 │  │  ├─ poseDetector.ts         # MediaPipe wrapper + getUserMedia (suporta 2 streams)
 │  │  ├─ smoother.ts             # EMA α=0.5 (default)
 │  │  ├─ oneEuroSmoother.ts      # One Euro Filter alternativo (não-default)
+│  │  ├─ runtime.ts              # PoseRuntime: dono único de câmera+modelo (app e jogos)
+│  │  ├─ bodyFraming.ts          # "corpo inteiro visível" puro (BodyCheck + Preparação)
 │  │  ├─ calibration.ts          # 4 baselines em 2s contínuos
 │  │  ├─ events.ts               # 6 heurísticas (jump/duck/lane/jack/arms_up/cadence)
 │  │  └─ spatialQueries.ts       # handAt, trunkRotationAngle, bothHandsAbove, etc.
@@ -59,6 +80,7 @@ movemove/
 │  │  ├─ keypointOverlay.ts      # esqueleto + HandGlow opcional
 │  │  └─ errorScreen.ts          # fallback fatal
 │  └─ game/                      # camada Phaser
+│     ├─ launch.ts               # launchGames(parent, {scene}) — entrada do módulo de jogos
 │     ├─ orchestrator.ts         # boot Phaser.Game; AppRefs em registry; 2P stream
 │     ├─ config.ts               # GAME_CONFIG (mundo pseudo-3D + zonas + falling mode)
 │     ├─ scenes/                 # cenas Phaser (26 cenas ativas)
@@ -83,7 +105,8 @@ movemove/
 │     ├─ fonts/                  # VT323 e similares
 │     └─ sounds/                 # SFX tradicionais
 ├─ e2e/                          # Playwright
-│  └─ issue-3-flow.spec.ts       # CT05/CT04/CT08
+│  ├─ mm2-app.spec.ts            # treino ponta a ponta + desafio entre 2 contextos
+│  └─ issue-{3,4}-flow.spec.ts   # jogos (via ?games=1)
 ├─ load-tests/
 └─ keys/                         # gitignored — certs locais
 ```

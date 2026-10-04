@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import mkcert from 'vite-plugin-mkcert';
+import { resolve } from 'node:path';
 
 export default defineConfig({
   // mkcert gera CA local + cert auto-assinado e instala no trust store do Mac.
@@ -16,6 +17,13 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
+    rollupOptions: {
+      // Landing em `/`, app em `/app/`.
+      input: {
+        landing: resolve(__dirname, 'index.html'),
+        app: resolve(__dirname, 'app/index.html'),
+      },
+    },
     sourcemap: false,
     assetsInlineLimit: 0,
   },

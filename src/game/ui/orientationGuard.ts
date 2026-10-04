@@ -1,8 +1,8 @@
 import { strings } from '../../i18n/strings.ts';
 
-export function installOrientationGuard(): void {
+export function installOrientationGuard(): () => void {
   const overlay = document.getElementById('orientation-overlay');
-  if (!overlay) return;
+  if (!overlay) return () => {};
   overlay.innerHTML = '';
   const icon = document.createElement('div');
   icon.className = 'icon'; icon.textContent = '📱↻';
@@ -22,4 +22,9 @@ export function installOrientationGuard(): void {
   apply();
   mql.addEventListener('change', apply);
   window.addEventListener('resize', apply);
+  return () => {
+    mql.removeEventListener('change', apply);
+    window.removeEventListener('resize', apply);
+    overlay.classList.add('hidden');
+  };
 }

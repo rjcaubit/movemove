@@ -5,16 +5,18 @@ import { getRefs } from '../orchestrator.ts';
 import type { ErrorKind } from '../../ui/errorScreen.ts';
 import { showError } from '../../ui/errorScreen.ts';
 
-interface LoadingData { next?: string }
+interface LoadingData { next?: string; nextData?: object }
 
 export class Loading extends Phaser.Scene {
   private statusText!: Phaser.GameObjects.Text;
   private nextScene = '';
+  private nextData: object | undefined;
 
   constructor() { super('Loading'); }
 
   init(data: LoadingData): void {
     this.nextScene = data?.next ?? '';
+    this.nextData = data?.nextData;
   }
 
   create(): void {
@@ -100,23 +102,24 @@ export class Loading extends Phaser.Scene {
 
       // Idempotente: se já carregou modelo + abriu câmera + iniciou, vai direto.
       if (!refs.detectorReady) {
-        await refs.detector.loadModel((msg) => this.statusText.setText(msg));
-        this.statusText.setText(strings.loading.statusOpeningCamera);
-        await refs.detector.openCamera(refs.video);
-        refs.detector.start(refs.video);
-        refs.markDetectorReady();
+        await refs.ensureDetector((msg) => {
+          this.statusText.setText(msg);
+          if (msg === strings.loading.statusReady) this.statusText.setText(strings.loading.statusOpeningCamera);
+        });
       }
       this.statusText.setText(strings.loading.statusReady);
       // Destino:
       // - Se foi passado data.next → vai pra lá
       // - Senão fluxo original: Tutorial (1ª vez) ou Calibration
       if (this.nextScene) {
-        this.scene.start(this.nextScene);
+        this.scene.start(this.nextScene, this.nextData);
         return;
       }
       const done = (() => { try { return localStorage.getItem(GAME_CONFIG.storageKeys.tutorialDone) === 'true'; } catch { return false; } })();
       this.scene.start(done ? 'Calibration' : 'Tutorial');
     } catch (err) {
+      // Jogos fechados pelo app enquanto a câmera abria: nada a mostrar.
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       const kind = this.classifyError(err);
       const errorRoot = document.getElementById('screen-error');
       if (errorRoot) {

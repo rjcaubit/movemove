@@ -1,12 +1,12 @@
 {
-  "name": "Movemove — Mexa o corpo!",
-  "short_name": "Movemove",
-  "description": "Mini-jogos de movimento controlados pelo corpo via câmera.",
+  "name": "MoveMove — treino em casa com a câmera",
+  "short_name": "MoveMove",
+  "description": "Treinos de peso corporal guiados pela câmera: conta repetições, mede amplitude e deixa você desafiar amigos por link.",
   "lang": "pt-BR",
-  "start_url": "/",
+  "start_url": "/app/",
   "display": "browser",
-  "background_color": "#0b0d10",
-  "theme_color": "#0b0d10",
+  "background_color": "#eef0f2",
+  "theme_color": "#eef0f2",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }

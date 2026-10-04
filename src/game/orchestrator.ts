@@ -32,6 +32,7 @@ import { JumpTester } from './scenes/JumpTester.ts';
 import { PoseDetector } from '../pose/poseDetector.ts';
 import { EmaSmoother } from '../pose/smoother.ts';
 import { POSE_CONFIG } from '../pose/config.ts';
+import { getPoseRuntime } from '../pose/runtime.ts';
 import { Calibrator } from '../pose/calibration.ts';
 import { EventDetector } from '../pose/events.ts';
 import { KeyboardDebug } from '../debug/keyboard.ts';
@@ -58,15 +59,23 @@ export interface AppRefs {
   /** True quando loadModel + openCamera + start já rodaram (Loading idempotente). */
   detectorReady: boolean;
   markDetectorReady: () => void;
+  /** Liga câmera + modelo via runtime compartilhado com o app. */
+  ensureDetector: (onProgress?: (msg: string) => void) => Promise<void>;
 }
 
-export function startApp(): Phaser.Game {
-  const video = document.getElementById('video') as HTMLVideoElement | null;
-  if (!video) throw new Error('#video not found');
+export interface StartAppResult {
+  game: Phaser.Game;
+  /** Solta assinaturas/listeners globais (a câmera fica com o runtime). */
+  dispose: () => void;
+}
 
-  installOrientationGuard();
+export function startApp(parent: string | HTMLElement = 'game'): StartAppResult {
+  const runtime = getPoseRuntime();
+  const video = runtime.video;
 
-  const detector = new PoseDetector();
+  const disposeOrientation = installOrientationGuard();
+
+  const detector = runtime.detector;
   const smoother = new EmaSmoother(POSE_CONFIG.emaAlpha);
   const calibrator = new Calibrator();
   const eventDetector = new EventDetector();
@@ -84,12 +93,11 @@ export function startApp(): Phaser.Game {
   }
 
   const smoothedSubs = new Set<(f: PoseFrame) => void>();
-  detector.onFrame((raw: PoseFrame) => {
-    const smoothed = smoother.smooth(raw.keypoints);
-    const frame: PoseFrame = { ...raw, keypoints: smoothed };
+  // Frames já chegam suavizados pelo runtime compartilhado.
+  const unsubFrame = runtime.onFrame((frame: PoseFrame) => {
     if (debugPanel) {
-      debugPanel.tickFps(raw.timestamp);
-      debugPanel.setConfidence(raw.confidence);
+      debugPanel.tickFps(frame.timestamp);
+      debugPanel.setConfidence(frame.confidence);
     }
     // Alimenta o EventDetector globalmente — qualquer cena que escute
     // 'event' funciona sem precisar fazer ingest manual.
@@ -97,11 +105,8 @@ export function startApp(): Phaser.Game {
     for (const cb of smoothedSubs) cb(frame);
   });
 
-  const smoother2 = new EmaSmoother(POSE_CONFIG.emaAlpha);
   const smoothedSubs2 = new Set<(f: PoseFrame) => void>();
-  detector.onFrame2((raw: PoseFrame) => {
-    const smoothed = smoother2.smooth(raw.keypoints);
-    const frame: PoseFrame = { ...raw, keypoints: smoothed };
+  const unsubFrame2 = runtime.onFrame2((frame: PoseFrame) => {
     for (const cb of smoothedSubs2) cb(frame);
   });
 
@@ -124,15 +129,16 @@ export function startApp(): Phaser.Game {
     onSmoothedFrame: (cb) => { smoothedSubs.add(cb); return () => smoothedSubs.delete(cb); },
     onSmoothedFrameP2: (cb) => { smoothedSubs2.add(cb); return () => smoothedSubs2.delete(cb); },
     profileStore, runHistory, missions,
-    detectorReady: false,
-    markDetectorReady: () => { refs.detectorReady = true; },
+    get detectorReady() { return runtime.isRunning; },
+    markDetectorReady: () => { /* estado vive no runtime */ },
+    ensureDetector: (onProgress) => runtime.ensureStarted(onProgress),
   };
 
   // GAME_CONFIG.width/height já foram ajustados em main.ts pra casar com
   // o viewport (em portrait, vira ~720×altura-proporcional pra fullscreen real)
   const game = new Phaser.Game({
     type: Phaser.AUTO,
-    parent: 'game',
+    parent,
     backgroundColor: GAME_CONFIG.bgColor,
     scale: {
       mode: Phaser.Scale.FIT,
@@ -145,7 +151,15 @@ export function startApp(): Phaser.Game {
     render: { pixelArt: true, antialias: false },
   });
   game.registry.set('refs', refs);
-  return game;
+  const dispose = (): void => {
+    unsubFrame();
+    unsubFrame2();
+    keyboardDebug.disable?.();
+    disposeOrientation();
+    debugToggleEl?.classList.add('hidden');
+    debugPanelEl?.classList.add('hidden');
+  };
+  return { game, dispose };
 }
 
 export function getRefs(scene: Phaser.Scene): AppRefs {

@@ -8,7 +8,7 @@ mkdirSync(SHOTS, { recursive: true });
 test.describe('Issue #4 — fase 2 cardio', () => {
   test('CT11 — Settings + Play running + WaterBreak + Summary com sparkline', async ({ page }) => {
     test.setTimeout(60_000);
-    await page.goto('/?debug=1&seed=42');
+    await page.goto('/app/?games=1&debug=1&seed=42');
     await page.waitForSelector('#game canvas', { timeout: 10_000 });
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* ignore */ } });
 
@@ -63,7 +63,7 @@ test.describe('Issue #4 — fase 2 cardio', () => {
   });
 
   test('CT09 — Settings persiste em localStorage após reload', async ({ page }) => {
-    await page.goto('/?debug=1');
+    await page.goto('/app/?games=1&debug=1');
     await page.waitForSelector('#game canvas', { timeout: 10_000 });
     await page.evaluate(() => {
       try {
@@ -83,7 +83,7 @@ test.describe('Issue #4 — fase 2 cardio', () => {
     await page.addInitScript(() => {
       Object.defineProperty(window, 'speechSynthesis', { configurable: true, get: () => undefined });
     });
-    await page.goto('/?debug=1');
+    await page.goto('/app/?games=1&debug=1');
     await page.waitForSelector('#game canvas', { timeout: 10_000 });
     await page.evaluate(() => {
       const w = window as unknown as { __movemoveDebug: {
@@ -98,7 +98,7 @@ test.describe('Issue #4 — fase 2 cardio', () => {
   });
 
   test('CT13/CT16 — MiniGames hub e jogos carregam', async ({ page }) => {
-    await page.goto('/?debug=1');
+    await page.goto('/app/?games=1&debug=1');
     await page.waitForSelector('#game canvas', { timeout: 10_000 });
 
     await page.evaluate(() => {

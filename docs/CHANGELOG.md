@@ -2,6 +2,29 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Todas as datas são UTC.
 
+## 2026-09-28 — MoveMove 2.0 — app de exercício com módulo de jogos
+
+### Added
+- UI nova em `src/app/` (TS/DOM, fonte Sora, design "Movemove Fit"): abas Treino · Desafios · Jogos · Histórico; telas Início, Montar treino, Preparação, Treino (direção 1a; 3 colunas em paisagem/desktop), Descanso, Resumo, Criar/Receber desafio, Resultado, Histórico.
+- `generateWorkout(options, seed)` por regra local (grupo/objetivo/duração/nível/equipamento), isolado pra virar IA depois; exercícios de chão agrupados no fim.
+- Catálogo com 18 exercícios: 9 da Sessão Guiada + Agachamento, Afundo, Polichinelo, Burpee, Elevação de panturrilha, Flexão, Prancha (tempo), Abdominal, Ponte de glúteo. Os de chão pedem câmera baixa e lateral na Preparação.
+- Amplitude 0–1 por rep em todos os detectores (`exerciseRepDetectors.ts`), anel + cor das articulações no esqueleto + dica curta + voz com cooldown. Em desafio, rep < 0,75 não conta.
+- Desafios sem backend: link `/#/desafio/<base64url>` com `{ v, nome, exercicio, modo, alvo, marca, data }`, envio por `wa.me`, comparação lado a lado e "Desafiar de volta". Modos: N reps no menor tempo, máximo em X s, segurar mais tempo, treino inteiro (mesma seed pros dois).
+- Boneco guia em SVG (`src/app/ui/figure.ts`) animado por keyframes de `src/shared/figurePoses.ts`.
+- `src/pose/runtime.ts` (câmera/modelo compartilhados) e `src/pose/bodyFraming.ts` (enquadramento puro).
+- E2E `e2e/mm2-app.spec.ts`.
+- Landing em `/` (app movido para `/app/`), com celular animado, catálogo e desafios.
+- Câmera mais aberta: pede 4:3 nativo na orientação da tela + zoom mínimo; modo "ver tudo" automático quando o corte passa de 20%, com botão "Ver mais / Preencher tela".
+- Catálogo 2.1: +13 exercícios (31 no total) — agachamento sumô, agachamento com salto, afundo lateral, patinador, chute no glúteo, elevação lateral de braços, cadeira isométrica (tempo), escalador, elevação de pernas, super-homem, prancha lateral (tempo), tríceps na cadeira e flexão inclinada (os dois primeiros com equipamento `cadeira`). Detectores novos: `HipShiftRep`, `ButtKickRep`, `LateralRaiseRep`, `MountainClimberRep`, `LegRaiseRep`, `SupermanRep`, `WallSitHold`; `PlankHold` parametrizado. Enquadramento lateral aceita corpo mais em pé (cadeira).
+- Produção em **https://move.mundocapi.com** (Cloudflare: A → VM Oracle, Configuration Rule SSL Flexible só pro host, http→https); `move.callbit.com.br` redireciona 301 mantendo caminho.
+- Seletor de câmera na Preparação (frontal, traseira, ultra-angular), salvo em `mm2.prefs.cameraId`; traseira sem espelho e dicas de lado invertidas.
+- Voz pré-gravada: 85 frases em MP3 (Francisca neural +25%, silêncio cortado, ~1 MB) geradas por `npm run voz`; `voicePack` (Web Audio) toca e pré-carrega as frases do treino na Preparação, com fallback pro Web Speech.
+
+### Changed
+- Phaser saiu da raiz: carrega sob demanda pela aba Jogos (`src/game/launch.ts`); `?games=1` abre o fluxo antigo direto (e2e antigos usam isso).
+- `BodyCheck` usa `detectFramingIssue`; `Loading` usa o runtime compartilhado e aceita `nextData`; `Boot` respeita `launchTarget`.
+- `ArmsUpCycleRep` e detectores alternados contam a rep ao fim da excursão (pra medir o pico).
+
 ## 2026-05-10 — #16 — feat: CanoeGame — mini-jogo de remo top-down
 
 ### Added

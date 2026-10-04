@@ -13,9 +13,9 @@
 | Distribuição | Oracle Linux 9 |
 | Chave SSH | `./keys/ssh-key-2026-04-27.key` (gitignored) |
 | Path do app | `/home/opc/movemove` |
-| URL pública | http://move.callbit.com.br (via Cloudflare proxy) |
+| URL pública | https://move.mundocapi.com (Cloudflare proxy; `move.callbit.com.br` redireciona 301 pra cá) |
 | Container | `movemove-frontend` (nginx:alpine servindo `dist/`) |
-| Portas | 80, 443 (mas só 80 ativo, sem cert) |
+| Portas | 80, 443 (mas só 80 ativo, sem cert) — HTTPS termina no Cloudflare: Configuration Rule por host com SSL **Flexible** (zonas `mundocapi.com` e `callbit.com.br` seguem em Full pros outros sites; não mudar o SSL da zona) |
 
 **Verificado em 2026-05-10:** SSH funciona, container `movemove-frontend` Up há ~6 dias na época da verificação. Outras VMs em `~/.ssh/known_hosts` (`146.235.60.226`, `147.15.84.148`) NÃO são da movemove — pertencem a outros projetos do workspace; a chave da movemove não dá acesso a elas.
 
@@ -40,7 +40,7 @@ ssh -i keys/ssh-key-2026-04-27.key opc@137.131.157.30 \
   'cd ~/movemove && docker compose up -d --build'
 
 # 4) Smoke test
-curl -sI http://move.callbit.com.br | head -3
+curl -sI https://move.mundocapi.com | head -3
 ```
 
 ### Logs / debug em produção
@@ -68,6 +68,9 @@ npm run build
 - **Phaser 4 ESM sem default export** — sempre `import * as Phaser from 'phaser'`.
 - **Pose layer é invariante.** Cenas Phaser nunca leem `keypoints` crus — usam `EventDetector` (bus) ou helpers de `src/pose/spatialQueries.ts`. Trocar driver de pose (futuro: MoveNet) não deve tocar cenas.
 - **Imports relativos com extensão explícita** (`./Player.ts`, não `./Player`).
+- **App × jogos (MoveMove 2.0):** UI principal em `src/app/` (TS/DOM, sem Phaser); lógica de negócio em `src/app/services/` (sem DOM). Phaser só dentro da aba Jogos via `src/game/launch.ts`. Câmera tem dono único: `getPoseRuntime()` — nunca chamar `detector.openCamera` direto.
+- **Voz do app = MP3 pré-gerado** (Francisca neural +25%, `public/voice/francisca-25/`). Frases vivem em `src/app/services/voiceLines.ts`; **mudou frase ou catálogo → rodar `npm run voz`** (precisa `edge-tts` + `ffmpeg`). Frase sem MP3 cai sozinha na voz do navegador.
+- **`?debug=1` no app:** na tela de treino, `p` pula a preparação, `r` = rep boa, `s` = rep rasa, `h` = alterna prancha, `n` = próxima fase. `?games=1` abre o módulo de jogos direto.
 - **`?debug=1`** ativa keyboard fallback + painel debug + `__movemoveDebug` no `window`. Suporte a `?seed=N`, `?demo=1`, `?landscape=1`/`?portrait=1`, `?dance=check`.
 - **Catalog Lingui ainda em identity fallback** (`{}`) — strings retornam o próprio msgid. Quando compilar `pt-BR.po`, atualizar `src/i18n/strings.ts`.
 

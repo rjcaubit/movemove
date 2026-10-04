@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#eef0f2" />
+    <title>MoveMove — treino em casa com a câmera</title>
+    <meta name="description" content="Treinos de peso corporal guiados pela câmera: conta repetições, mede amplitude e deixa você desafiar amigos por link." />
+    <meta property="og:title" content="MoveMove — treino em casa com a câmera" />
+    <meta property="og:description" content="Treinos de peso corporal guiados pela câmera: conta repetições, mede amplitude e deixa você desafiar amigos por link." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/icons/icon-512.png" />
+    <meta property="og:url" content="https://move.mundocapi.com/app/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MoveMove — treino em casa com a câmera" />
+    <meta name="twitter:description" content="Treinos de peso corporal guiados pela câmera: conta repetições, mede amplitude e deixa você desafiar amigos por link." />
+    <meta name="twitter:image" content="/icons/icon-512.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <video id="video" playsinline muted style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;top:0;left:0;z-index:-1"></video>
+      <canvas id="overlay" hidden></canvas>
+      <div id="mm-root"></div>
+      <div id="game-layer" class="is-hidden"></div>
+      <div id="camera-preview" class="hidden"></div>
+      <button id="debug-toggle" class="hidden" aria-label="Mostrar painel de debug">Debug</button>
+      <aside id="debug-panel" class="hidden" aria-label="Painel de debug"></aside>
+      <section id="screen-error" class="screen hidden" aria-hidden="true"></section>
+      <div id="orientation-overlay" class="hidden" aria-hidden="true"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

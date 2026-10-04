@@ -10,7 +10,7 @@ test.describe('Issue #3 — endless runner', () => {
     test.setTimeout(60_000);
 
     await page.addInitScript(() => { try { localStorage.clear(); } catch { /* ignore */ } });
-    await page.goto('/?debug=1&seed=42');
+    await page.goto('/app/?games=1&debug=1&seed=42');
 
     // 01 - Welcome: canvas presente
     await page.waitForSelector('#game canvas', { timeout: 10_000 });
@@ -60,7 +60,7 @@ test.describe('Issue #3 — endless runner', () => {
 
   test('CT04 — keyboard fallback gera eventos no debug panel (?debug=1)', async ({ page }) => {
     await page.addInitScript(() => { try { localStorage.setItem('movemove.tutorialDone', 'true'); } catch { /* ignore */ } });
-    await page.goto('/?debug=1&seed=42');
+    await page.goto('/app/?games=1&debug=1&seed=42');
     await page.waitForSelector('#game canvas', { timeout: 10_000 });
 
     // Force pra Play
@@ -100,7 +100,7 @@ test.describe('Issue #3 — endless runner', () => {
       });
       try { localStorage.setItem('movemove.tutorialDone', 'true'); } catch { /* ignore */ }
     });
-    await page.goto('/?debug=1');
+    await page.goto('/app/?games=1&debug=1');
     await page.waitForSelector('#game canvas', { timeout: 10_000 });
     // Avança pra Loading via debug helper (simula clique no Welcome CTA)
     await page.evaluate(() => {
@@ -115,7 +115,7 @@ test.describe('Issue #3 — endless runner', () => {
 
   test('CT06 — tutorial roda só na 1ª vez (flag localStorage)', async ({ page }) => {
     // 1ª visita: limpar localStorage manualmente após o load (sem addInitScript pra não re-disparar no reload)
-    await page.goto('/?debug=1');
+    await page.goto('/app/?games=1&debug=1');
     await page.waitForSelector('#game canvas', { timeout: 10_000 });
     await page.evaluate(() => { try { localStorage.clear(); } catch { /* ignore */ } });
     let done = await page.evaluate(() => localStorage.getItem('movemove.tutorialDone'));
@@ -143,7 +143,7 @@ test.describe('Issue #3 — endless runner', () => {
         localStorage.setItem('movemove.bestDistance', '100');
       } catch { /* ignore */ }
     });
-    await page.goto('/?debug=1&seed=42');
+    await page.goto('/app/?games=1&debug=1&seed=42');
     await page.waitForSelector('#game canvas', { timeout: 10_000 });
 
     // Trigger GameOver com distance > 100 via debug

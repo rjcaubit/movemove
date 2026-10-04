@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import { GAME_CONFIG } from '../config.ts';
 import { strings } from '../../i18n/strings.ts';
-import { KP } from '../../pose/types.ts';
+import { detectFramingIssue } from '../../pose/bodyFraming.ts';
 import { getRefs } from '../orchestrator.ts';
 import { CameraBackdrop } from '../ui/cameraBackdrop.ts';
 import { addBackButton } from '../ui/backButton.ts';
@@ -152,26 +152,8 @@ export class BodyCheck extends Phaser.Scene {
   }
 
   private detectIssue(frame: PoseFrame): Issue {
-    if (frame.confidence < 0.4) return 'noBody';
-    const ls = frame.keypoints[KP.LEFT_SHOULDER];
-    const rs = frame.keypoints[KP.RIGHT_SHOULDER];
-    const lh = frame.keypoints[KP.LEFT_HIP];
-    const rh = frame.keypoints[KP.RIGHT_HIP];
-    const nose = frame.keypoints[KP.NOSE];
-    if (!ls || !rs || !lh || !rh) return 'noBody';
-
-    const shoulderWidth = Math.abs(rs.x - ls.x);
-    const hipCenterX = (lh.x + rh.x) / 2;
-    const hipMaxY = Math.max(lh.y, rh.y);
-    const headY = nose ? nose.y : Math.min(ls.y, rs.y) - 0.05;
-
-    if (headY < 0.05) return 'headCut';
-    if (hipMaxY > 0.92) return 'hipCut';
-    if (shoulderWidth < 0.13) return 'tooFar';
-    if (shoulderWidth > 0.42) return 'tooClose';
-    if (hipCenterX < 0.32) return 'offRight';
-    if (hipCenterX > 0.68) return 'offLeft';
-    return null;
+    const issue = detectFramingIssue(frame);
+    return issue === 'feetCut' ? 'hipCut' : issue;
   }
 
   private handleFrame(frame: PoseFrame): void {

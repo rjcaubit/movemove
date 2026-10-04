@@ -34,7 +34,13 @@ export class PoseDetector {
     onProgress?.(strings.loading.statusReady);
   }
 
-  async openCamera(video: HTMLVideoElement): Promise<void> {
+  /**
+   * @param opts.wide  Campo de visão máximo: pede 4:3 (formato nativo do
+   *   sensor, sem corte) na orientação da tela e aplica o zoom mínimo que a
+   *   câmera suportar. Sem `opts`, mantém o comportamento original (16:9),
+   *   do qual as heurísticas dos jogos dependem.
+   */
+  async openCamera(video: HTMLVideoElement, opts?: { wide?: boolean; portrait?: boolean; deviceId?: string }): Promise<void> {
     // Em contextos não-seguros (IP LAN sem HTTPS), navigator.mediaDevices é
     // undefined. Falhar com erro nomeado para o orquestrador classificar.
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -43,22 +49,40 @@ export class PoseDetector {
         'SecurityError',
       );
     }
-    // Detecta modo retrato pra trocar dimensões e pedir aspect portrait do device
-    const portrait = (() => {
-      try { return new URLSearchParams(window.location.search).get('portrait') === '1'; }
-      catch { return false; }
-    })();
-    const w = portrait ? POSE_CONFIG.videoIdealHeight : POSE_CONFIG.videoIdealWidth;
-    const h = portrait ? POSE_CONFIG.videoIdealWidth : POSE_CONFIG.videoIdealHeight;
-    this.stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: 'user',
-        width: { ideal: w },
-        height: { ideal: h },
-        aspectRatio: { ideal: w / h },
-      },
-      audio: false,
-    });
+    if (opts?.wide) {
+      const portrait = opts.portrait ?? false;
+      const w = portrait ? 480 : 640;
+      const h = portrait ? 640 : 480;
+      const size = { width: { ideal: w }, height: { ideal: h }, aspectRatio: { ideal: w / h } };
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          video: opts.deviceId ? { deviceId: { exact: opts.deviceId }, ...size } : { facingMode: 'user', ...size },
+          audio: false,
+        });
+      } catch (err) {
+        // Câmera salva sumiu (outro aparelho, permissão trocada): volta pra frontal.
+        if (!opts.deviceId) throw err;
+        this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', ...size }, audio: false });
+      }
+      await this.zoomOutFully();
+    } else {
+      // Detecta modo retrato pra trocar dimensões e pedir aspect portrait do device
+      const portrait = (() => {
+        try { return new URLSearchParams(window.location.search).get('portrait') === '1'; }
+        catch { return false; }
+      })();
+      const w = portrait ? POSE_CONFIG.videoIdealHeight : POSE_CONFIG.videoIdealWidth;
+      const h = portrait ? POSE_CONFIG.videoIdealWidth : POSE_CONFIG.videoIdealHeight;
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: w },
+          height: { ideal: h },
+          aspectRatio: { ideal: w / h },
+        },
+        audio: false,
+      });
+    }
     video.srcObject = this.stream;
     await new Promise<void>((resolve) => {
       const onLoaded = () => {
@@ -68,6 +92,35 @@ export class PoseDetector {
       video.addEventListener('loadedmetadata', onLoaded);
     });
     await video.play();
+  }
+
+  /** Câmera em uso: id e se é frontal (vídeo deve ser espelhado na tela). */
+  activeCamera(): { deviceId: string; label: string; front: boolean } | null {
+    const track = this.stream?.getVideoTracks()[0];
+    if (!track) return null;
+    const st = track.getSettings();
+    const label = track.label ?? '';
+    const front = st.facingMode ? st.facingMode === 'user' : !/back|rear|traseira|environment/i.test(label);
+    return { deviceId: st.deviceId ?? '', label, front };
+  }
+
+  /** Câmeras de vídeo do aparelho (labels só aparecem depois da permissão). */
+  static async listCameras(): Promise<MediaDeviceInfo[]> {
+    if (!navigator.mediaDevices?.enumerateDevices) return [];
+    const all = await navigator.mediaDevices.enumerateDevices();
+    return all.filter((d) => d.kind === 'videoinput');
+  }
+
+  /** Aplica o menor zoom suportado (alguns celulares abrem a frontal já com zoom). */
+  private async zoomOutFully(): Promise<void> {
+    const track = this.stream?.getVideoTracks()[0];
+    if (!track || typeof track.getCapabilities !== 'function') return;
+    try {
+      const caps = track.getCapabilities() as MediaTrackCapabilities & { zoom?: { min: number; max: number } };
+      if (caps.zoom && typeof caps.zoom.min === 'number') {
+        await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as MediaTrackConstraintSet] });
+      }
+    } catch { /* sem suporte a zoom: segue normal */ }
   }
 
   start(video: HTMLVideoElement, onError?: (err: unknown) => void): void {

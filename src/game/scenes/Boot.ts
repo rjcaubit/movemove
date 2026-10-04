@@ -83,6 +83,12 @@ export class Boot extends Phaser.Scene {
       this.scene.start('Loading', { next: 'JumpTester' });
       return;
     }
+    // Aberto pela aba Jogos do app com um destino específico.
+    const target = this.game.registry.get('launchTarget') as { scene: string; data?: object } | undefined;
+    if (target) {
+      this.scene.start(target.scene, target.data);
+      return;
+    }
     this.scene.start(demo ? 'Demo' : 'Welcome');
   }
 
