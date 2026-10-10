@@ -1,0 +1,11 @@
+{
+  "spritemap": {
+    "coin_collect":     { "start": 0.0, "end": 0.4, "loop": false },
+    "obstacle_hit":     { "start": 0.5, "end": 1.1, "loop": false },
+    "jump":             { "start": 1.2, "end": 1.6, "loop": false },
+    "shield":           { "start": 1.7, "end": 2.2, "loop": false },
+    "game_over":        { "start": 2.3, "end": 3.5, "loop": false },
+    "mission_complete": { "start": 3.6, "end": 4.8, "loop": false },
+    "boss_defeat":      { "start": 4.9, "end": 6.2, "loop": false }
+  }
+}

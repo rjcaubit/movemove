@@ -1,0 +1,3 @@
+{ "url": "https://move.mundocapi.com/", "index": "index.html", "raiz": "#lp",
+  "head": { "canonical": "https://move.mundocapi.com/", "siteName": "MoveMove", "ogImage": "https://move.mundocapi.com/og.png",
+    "jsonld": {"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://mundocapi.com/#org","name":"MundoCapi","url":"https://mundocapi.com/"},{"@type":"WebApplication","name":"MoveMove","applicationCategory":"HealthApplication","operatingSystem":"Web","url":"https://move.mundocapi.com/","description":"Treino de peso corporal guiado pela câmera do celular, que conta repetições e corrige o movimento.","inLanguage":"pt-BR","offers":{"@type":"Offer","price":"0","priceCurrency":"BRL"},"publisher":{"@id":"https://mundocapi.com/#org"}}]} } }

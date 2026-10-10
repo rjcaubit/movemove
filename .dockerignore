@@ -1,0 +1,13 @@
+node_modules
+.git
+.vscode
+.idea
+*.log
+keys
+docs
+kenney_desert-shooter-pack_1.0
+kenney_desert-shooter-pack_1.0.zip
+public/assets/audio/*.mid
+public/assets/audio/*.wav
+.dockerignore
+.gitignore

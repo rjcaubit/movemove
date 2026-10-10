@@ -1,0 +1,27 @@
+node_modules
+dist
+.DS_Store
+.vscode
+.idea
+*.log
+.env
+.env.local
+load-tests/results/*/screenshots/
+public/wasm/
+public/models/pose_landmarker_lite.task
+.tmp-*.md
+playwright-report
+test-results
+tsconfig.tsbuildinfo
+keys/
+
+# Material local, fora do repositório público
+docs/sdd/
+docs/infra/
+docs/CHANGELOG.md
+docker/setup-oracle.sh
+load-tests/
+EXERGAME_PROJETO.md
+marketing/
+voz-amostras/
+wrangler.toml
