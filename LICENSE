@@ -1,0 +1,53 @@
+MoveMove — Licença de código visível, todos os direitos reservados
+
+Copyright (c) 2026 Rafael Caubit (MundoCapi). Todos os direitos reservados.
+
+Este repositório é público para que qualquer pessoa possa LER o código e
+entender como o MoveMove funciona. Ele não é software livre nem de código
+aberto.
+
+É PERMITIDO, sem pedir autorização:
+
+  1. ler e estudar o código-fonte;
+  2. baixar ou clonar o repositório e rodá-lo na sua própria máquina, para
+     estudo e avaliação pessoal, sem fins comerciais;
+  3. citar trechos curtos, com indicação da fonte, em textos, aulas e
+     discussões técnicas.
+
+NÃO É PERMITIDO, sem autorização prévia e por escrito do titular:
+
+  1. copiar, redistribuir, republicar ou espelhar este código, no todo ou em
+     parte, fora dos mecanismos da própria plataforma em que ele está
+     hospedado;
+  2. criar, publicar ou distribuir obras derivadas;
+  3. hospedar, oferecer ou operar o MoveMove, ou qualquer produto feito a
+     partir dele, para terceiros, com ou sem cobrança;
+  4. usar o código, no todo ou em parte, em produto ou serviço comercial;
+  5. usar o nome "MoveMove", "MundoCapi", a marca, os ícones, as vozes
+     gravadas e os textos do produto;
+  6. remover ou alterar este aviso.
+
+COMPONENTES DE TERCEIROS
+
+Bibliotecas, modelos e recursos de terceiros incluídos ou referenciados neste
+repositório continuam sob as licenças dos respectivos autores, e esta licença
+não os alcança. Entre eles, o pacote "Desert Shooter Pack" da Kenney
+(Creative Commons Zero) e as dependências listadas em `package.json`.
+
+SEM GARANTIA
+
+O software é fornecido "como está", sem garantia de qualquer tipo, expressa ou
+implícita. O titular não responde por danos decorrentes do uso do código.
+O MoveMove não substitui orientação médica nem de profissional de educação
+física.
+
+CONTATO
+
+Pedidos de autorização, parcerias e dúvidas: suporte@mundocapi.com
+
+-------------------------------------------------------------------------------
+English summary (the Portuguese text above prevails): source-available, all
+rights reserved. You may read the code and run it locally for personal,
+non-commercial study. You may not copy, redistribute, publish derivative
+works, host it for others, or use it commercially without prior written
+permission. Third-party components keep their own licenses. No warranty.

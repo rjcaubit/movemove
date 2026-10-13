@@ -227,10 +227,12 @@ function render(): void {
           h('p', { class: 'lead', style: 'color:#aab2bc;margin-top:10px' }, 'Um treino de 5 minutos já conta. Abra no celular, apoie num canto e vai.')),
         h('a', { class: 'btn btn-secondary', href: ctaHref }, ctaLabel))));
 
+  const REPO_URL = 'https://github.com/rjcaubit/movemove';
   const footer = h('footer', null,
     h('div', { class: 'wrap' },
       h('span', null, 'MoveMove · treino em casa com a câmera'),
-      h('span', null, 'Sem conta. Seus dados ficam no seu aparelho.')));
+      h('span', null, 'Sem conta. Seus dados ficam no seu aparelho.'),
+      h('a', { href: REPO_URL, target: '_blank', rel: 'noopener' }, 'Código no GitHub')));
 
   // `replaceChildren`, e não `append`: o index.html já traz esta mesma página em HTML estático
   // (para o buscador), e ela precisa ser substituída, não duplicada.

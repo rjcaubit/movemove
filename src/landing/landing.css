@@ -148,7 +148,9 @@ a { color: inherit; }
 .final .h2 { color: #fff; margin: 0; }
 
 footer { padding: 28px 0 44px; font-size: 13px; color: var(--faint); }
-footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; align-items: center; }
+footer a { display: inline-flex; align-items: center; min-height: 44px; color: var(--muted); font-weight: 600; text-underline-offset: 3px; }
+footer a:hover { color: var(--accent); }
 
 @media (min-width: 720px) {
   .wrap { padding: 0 32px; }
